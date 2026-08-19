@@ -7448,6 +7448,9 @@ window.addEventListener('DOMContentLoaded', async () => {
     });
   }
 
+  // Initialize Theme Switcher (Dark / Light)
+  initTheme();
+
   // Check if session is stored to auto-login on refresh
   const sessionStr = localStorage.getItem('wfm_session');
   if (sessionStr) {
@@ -7473,3 +7476,38 @@ window.addEventListener('DOMContentLoaded', async () => {
     }
   }, 10000);
 });
+
+// --- Theme Management (Dark / Light Theme Switcher) ---
+function initTheme() {
+  const savedTheme = localStorage.getItem('wfm_theme') || 'dark';
+  applyTheme(savedTheme);
+
+  const toggleBtn = document.getElementById('btn-theme-toggle');
+  if (toggleBtn) {
+    toggleBtn.addEventListener('click', () => {
+      const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+      const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+      applyTheme(newTheme);
+    });
+  }
+}
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem('wfm_theme', theme);
+
+  const toggleBtn = document.getElementById('btn-theme-toggle');
+  if (toggleBtn) {
+    if (theme === 'light') {
+      toggleBtn.innerHTML = `<i data-lucide="moon" style="width:15px;height:15px;"></i> <span>Dark Mode</span>`;
+      toggleBtn.classList.add('is-light');
+      toggleBtn.title = "Switch to Dark Mode";
+    } else {
+      toggleBtn.innerHTML = `<i data-lucide="sun" style="width:15px;height:15px;"></i> <span>Light Mode</span>`;
+      toggleBtn.classList.remove('is-light');
+      toggleBtn.title = "Switch to Light Mode";
+    }
+    if (window.lucide) window.lucide.createIcons();
+  }
+}
+
