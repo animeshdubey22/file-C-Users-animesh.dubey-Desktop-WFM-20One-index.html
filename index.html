@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233b82f6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 3v18h18'/%3E%3Cpath d='m19 9-5 5-4-4-3 3'/%3E%3C/svg%3E" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WFM-One | Enterprise Workforce Management</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+
+    <!-- Unified Login Screen Mount -->
+    <div class="login-backdrop" id="login-screen">
+      <!-- Generated dynamically by app.js -->
+    </div>
+
+    <!-- Main Application Shell (hidden by default until logged in) -->
+    <div class="app-container" id="app-shell" style="display: none;">
+      
+      <!-- Sidebar Navigation -->
+      <aside>
+        <div class="brand-section">
+          <div class="brand-logo">W1</div>
+          <div>
+            <h2 class="brand-title">WFM-One</h2>
+            <span class="brand-subtitle">House of Brands</span>
+          </div>
+        </div>
+
+        <!-- Role / Persona switcher (Only displayed for Admins to simulate roles) -->
+        <div class="sidebar-control-box" id="sim-control-box">
+          <span class="control-label">Simulate Persona</span>
+          <select class="sidebar-select" id="role-select">
+            <option value="Agent">Agent</option>
+            <option value="Team Leader">Team Leader</option>
+            <option value="WFM Analyst">WFM Analyst</option>
+            <option value="WFM Manager">WFM Manager</option>
+            <option value="WFM Admin">WFM Admin</option>
+            <option value="Executive Viewer">Executive Viewer</option>
+          </select>
+        </div>
+
+        <!-- Navigation Links -->
+        <ul class="nav-menu" id="nav-menu">
+          <!-- Populated dynamically by app.js depending on active role permissions -->
+        </ul>
+      </aside>
+
+      <!-- Main Panel -->
+      <main>
+        <!-- Header -->
+        <header>
+          <div class="page-title-section">
+            <h1 id="page-title">Operations Command Center</h1>
+          </div>
+          
+          <div class="header-actions">
+            <div class="header-stat">
+              <span class="header-stat-label">System Time</span>
+              <span class="header-stat-value">2026-06-25 21:50 EST</span>
+            </div>
+            
+            <!-- Refresh Button -->
+            <div class="header-refresh-btn" id="btn-header-refresh" title="Refresh Live Data" style="cursor: pointer; padding: 0.5rem; display: flex; align-items: center; justify-content: center; color: var(--text-muted); transition: color 0.2s ease;">
+              <i data-lucide="rotate-cw" style="width: 18px; height: 18px;"></i>
+            </div>
+            
+            <!-- User profile badge -->
+            <div class="user-profile-badge" style="cursor: pointer;" id="btn-logout" title="Click to Logout">
+              <div class="avatar" id="header-user-avatar">AD</div>
+              <div class="user-info">
+                <span class="user-name" id="header-user-name">Animesh Dubey</span>
+                <span class="user-role" id="header-user-role">WFM Admin</span>
+              </div>
+              <div style="margin-left: 0.5rem; color: var(--text-muted);">
+                <i data-lucide="log-out" style="width:16px;height:16px;"></i>
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <!-- Dynamic Content Mount point -->
+        <div class="content-viewport" id="content-viewport">
+          <!-- Views rendered dynamically from app.js -->
+        </div>
+      </main>
+
+    </div>
+
+    <!-- Core App Logic -->
+    <script src="app.js"></script>
+  </body>
+</html>
