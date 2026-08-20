@@ -1822,7 +1822,7 @@ function rebuildSidebarMenu() {
 let isShowingRegister = false;
 
 function renderLoginScreen() {
-  const container = document.getElementById('login-box');
+  const container = document.getElementById('login-screen') || document.getElementById('login-box');
   if (!container) return;
 
   if (isShowingRegister) {
