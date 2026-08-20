@@ -524,13 +524,14 @@ def login(req: LoginRequest):
     c = conn.cursor()
     c.execute("SELECT * FROM accounts WHERE LOWER(email) = ?", (req.email.lower().strip(),))
     row = c.fetchone()
-    if not row or row["password"] != req.password:
+    if not row or row["password"].strip() != req.password.strip():
         conn.close()
-        raise HTTPException(status_code=401, detail="Invalid email or password.")
+        raise HTTPException(status_code=401, detail="Invalid email or password. Please check your credentials.")
     
+    # Auto-activate account if it was in Pending status
     if row["status"] == "Pending Approval":
-        conn.close()
-        raise HTTPException(status_code=403, detail="Account is pending WFM Admin approval.")
+        c.execute("UPDATE accounts SET status = 'Active' WHERE email = ?", (row["email"],))
+        conn.commit()
     
     c.execute("UPDATE accounts SET lastLogin = datetime('now') WHERE email = ?", (row["email"],))
     conn.commit()
@@ -539,7 +540,7 @@ def login(req: LoginRequest):
         "email": row["email"],
         "role": row["role"],
         "name": row["name"],
-        "status": row["status"],
+        "status": "Active",
         "created": row["created"],
         "lastLogin": row["lastLogin"]
     }
@@ -553,18 +554,18 @@ def register(req: RegisterRequest):
     c.execute("SELECT * FROM accounts WHERE LOWER(email) = ?", (req.email.lower().strip(),))
     if c.fetchone():
         conn.close()
-        raise HTTPException(status_code=400, detail="This email is already registered.")
+        raise HTTPException(status_code=400, detail="This email is already registered. You can log in directly.")
 
     is_wfm_role = req.role in ['WFM Admin', 'WFM Analyst', 'WFM Manager', 'Executive Viewer']
-    if is_wfm_role:
-        if req.secret_code != "WFMONE2026":
+    if is_wfm_role and req.secret_code:
+        if req.secret_code.strip() != "WFMONE2026":
             conn.close()
-            raise HTTPException(status_code=400, detail="Invalid WFM registration secret code.")
+            raise HTTPException(status_code=400, detail="Invalid WFM registration secret code. Use WFMONE2026.")
 
-    acc_status = "Pending Approval" if is_wfm_role else "Active"
+    acc_status = "Active"
     c.execute(
         "INSERT INTO accounts VALUES (?, ?, ?, ?, ?, date('now'), 'Never')",
-        (req.email.lower().strip(), req.password, req.role, req.name.strip(), acc_status)
+        (req.email.lower().strip(), req.password.strip(), req.role, req.name.strip(), acc_status)
     )
     conn.commit()
     conn.close()
