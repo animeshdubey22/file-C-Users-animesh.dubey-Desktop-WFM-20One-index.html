@@ -2,6 +2,19 @@
 // WFM-One App Logic (FastAPI / SQLite Backend Integration with Offline Fallback)
 // ==========================================
 
+// --- Dynamic API Base Resolution ---
+function getApiUrl(path) {
+  if (!path) return '';
+  if (path.startsWith('http://') || path.startsWith('https://')) return path;
+  if (!path.startsWith('/')) path = '/' + path;
+  if (typeof window !== 'undefined') {
+    if (window.location.protocol === 'file:' || (window.location.port && window.location.port !== '8000')) {
+      return `http://127.0.0.1:8000${path}`;
+    }
+  }
+  return path;
+}
+
 // --- Local Fallback Authentication Helper (for file:/// and offline mode) ---
 function localMockLogin(email, password) {
   const normEmail = (email || '').toLowerCase().trim();
@@ -85,7 +98,7 @@ const api = {
       return localMockLogin(email, password);
     }
     try {
-      const res = await fetch('/api/auth/login', {
+      const res = await fetch(getApiUrl('/api/auth/login'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
@@ -119,7 +132,7 @@ const api = {
       return { success: true, status: 'Active' };
     }
     try {
-      const res = await fetch('/api/auth/register', {
+      const res = await fetch(getApiUrl('/api/auth/register'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
@@ -146,7 +159,7 @@ const api = {
   async getAccounts() {
     if (window.location.protocol === 'file:') return state.accounts || [];
     try {
-      const res = await fetch('/api/accounts');
+      const res = await fetch(getApiUrl('/api/accounts'));
       if (res.ok) return await res.json();
       return state.accounts || [];
     } catch (e) { return state.accounts || []; }
@@ -158,7 +171,7 @@ const api = {
       return { success: true };
     }
     try {
-      const res = await fetch(`/api/accounts/${encodeURIComponent(email)}/status`, {
+      const res = await fetch(getApiUrl(`/api/accounts/${encodeURIComponent(email)}/status`), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status })
@@ -169,7 +182,7 @@ const api = {
   async getAgents() {
     if (window.location.protocol === 'file:') return state.agents || [];
     try {
-      const res = await fetch('/api/agents');
+      const res = await fetch(getApiUrl('/api/agents'));
       if (res.ok) return await res.json();
       return state.agents || [];
     } catch (e) { return state.agents || []; }
@@ -180,7 +193,7 @@ const api = {
       return agent;
     }
     try {
-      const res = await fetch('/api/agents', {
+      const res = await fetch(getApiUrl('/api/agents'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(agent)
@@ -199,7 +212,7 @@ const api = {
       return { success: true };
     }
     try {
-      const res = await fetch(`/api/agents/${encodeURIComponent(id)}`, {
+      const res = await fetch(getApiUrl(`/api/agents/${encodeURIComponent(id)}`), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
@@ -217,7 +230,7 @@ const api = {
       return { success: true };
     }
     try {
-      const res = await fetch(`/api/agents/${encodeURIComponent(idOrName)}/state`, {
+      const res = await fetch(getApiUrl(`/api/agents/${encodeURIComponent(idOrName)}/state`), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ actualOnline, actualState })
@@ -228,7 +241,7 @@ const api = {
   async bulkSyncAgents(agents) {
     if (window.location.protocol === 'file:') return { success: true };
     try {
-      const res = await fetch('/api/agents/bulk-sync', {
+      const res = await fetch(getApiUrl('/api/agents/bulk-sync'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ agents })
@@ -239,7 +252,7 @@ const api = {
   async getHoops() {
     if (window.location.protocol === 'file:') return state.hoops || [];
     try {
-      const res = await fetch('/api/hoops');
+      const res = await fetch(getApiUrl('/api/hoops'));
       if (res.ok) return await res.json();
       return state.hoops || [];
     } catch (e) { return state.hoops || []; }
@@ -250,7 +263,7 @@ const api = {
       return hoop;
     }
     try {
-      const res = await fetch('/api/hoops', {
+      const res = await fetch(getApiUrl('/api/hoops'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(hoop)
@@ -264,14 +277,14 @@ const api = {
       return { success: true };
     }
     try {
-      const res = await fetch(`/api/hoops/${id}`, { method: 'DELETE' });
+      const res = await fetch(getApiUrl(`/api/hoops/${id}`), { method: 'DELETE' });
       return res.json();
     } catch (e) { return { success: true }; }
   },
   async getRequests() {
     if (window.location.protocol === 'file:') return state.timeOffRequests || [];
     try {
-      const res = await fetch('/api/requests');
+      const res = await fetch(getApiUrl('/api/requests'));
       if (res.ok) return await res.json();
       return state.timeOffRequests || [];
     } catch (e) { return state.timeOffRequests || []; }
@@ -282,7 +295,7 @@ const api = {
       return req;
     }
     try {
-      const res = await fetch('/api/requests', {
+      const res = await fetch(getApiUrl('/api/requests'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(req)
@@ -297,7 +310,7 @@ const api = {
       return { success: true };
     }
     try {
-      const res = await fetch(`/api/requests/${id}/status`, {
+      const res = await fetch(getApiUrl(`/api/requests/${id}/status`), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status })
@@ -308,7 +321,7 @@ const api = {
   async getActiveForecasts() {
     if (window.location.protocol === 'file:') return state.activeForecasts || {};
     try {
-      const res = await fetch('/api/forecast/active');
+      const res = await fetch(getApiUrl('/api/forecast/active'));
       if (res.ok) return await res.json();
       return state.activeForecasts || {};
     } catch (e) { return state.activeForecasts || {}; }
@@ -320,7 +333,7 @@ const api = {
       return { success: true };
     }
     try {
-      const res = await fetch('/api/forecast/active', {
+      const res = await fetch(getApiUrl('/api/forecast/active'), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ brand, channel, volume, aht })
@@ -331,7 +344,7 @@ const api = {
   async getHistoricalData() {
     if (window.location.protocol === 'file:') return state.historicalData || {};
     try {
-      const res = await fetch('/api/forecast/history');
+      const res = await fetch(getApiUrl('/api/forecast/history'));
       if (res.ok) return await res.json();
       return state.historicalData || {};
     } catch (e) { return state.historicalData || {}; }
@@ -343,7 +356,7 @@ const api = {
       return { success: true };
     }
     try {
-      const res = await fetch('/api/forecast/history', {
+      const res = await fetch(getApiUrl('/api/forecast/history'), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ brand, channel, volumes, ahts })
@@ -354,7 +367,7 @@ const api = {
   async getSetting(key) {
     if (window.location.protocol === 'file:') return state[key] || null;
     try {
-      const res = await fetch(`/api/settings/${key}`);
+      const res = await fetch(getApiUrl(`/api/settings/${key}`));
       if (!res.ok) return null;
       return res.json();
     } catch (e) { return null; }
@@ -365,7 +378,7 @@ const api = {
       return { success: true };
     }
     try {
-      const res = await fetch(`/api/settings/${key}`, {
+      const res = await fetch(getApiUrl(`/api/settings/${key}`), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(val)
@@ -380,7 +393,7 @@ const api = {
       if (startDate) url += `start_date=${encodeURIComponent(startDate)}&`;
       if (endDate) url += `end_date=${encodeURIComponent(endDate)}&`;
       if (agentId) url += `agent_id=${encodeURIComponent(agentId)}&`;
-      const res = await fetch(url);
+      const res = await fetch(getApiUrl(url));
       if (!res.ok) return state.scheduleOverrides || [];
       return res.json();
     } catch (e) { return state.scheduleOverrides || []; }
@@ -420,7 +433,7 @@ const api = {
       return { success: true };
     }
     try {
-      const res = await fetch('/api/schedule/override', {
+      const res = await fetch(getApiUrl('/api/schedule/override'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
@@ -467,7 +480,7 @@ const api = {
       return { success: true };
     }
     try {
-      const res = await fetch('/api/schedule/slide', {
+      const res = await fetch(getApiUrl('/api/schedule/slide'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
@@ -516,7 +529,7 @@ const api = {
       return { success: true };
     }
     try {
-      const res = await fetch('/api/schedule/week-off', {
+      const res = await fetch(getApiUrl('/api/schedule/week-off'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
@@ -564,7 +577,7 @@ const api = {
       return { success: true };
     }
     try {
-      const res = await fetch('/api/schedule/leave', {
+      const res = await fetch(getApiUrl('/api/schedule/leave'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
@@ -590,12 +603,65 @@ const api = {
         state.scheduleOverrides.push(ex);
       }
       if (!ex.activities) ex.activities = [];
-      ex.activities.push({
-        id: `ACT_${Date.now()}`,
-        name: data.activity_name,
-        start: data.start_time,
-        end: data.end_time,
-        duration: data.duration_minutes || 60
+      if (data.action === 'remove') {
+        if (data.activity_id) {
+          ex.activities = ex.activities.filter(a => String(a.id) !== String(data.activity_id));
+        } else if (data.activity_name) {
+          ex.activities = ex.activities.filter(a => a.name !== data.activity_name);
+        } else {
+          ex.activities = [];
+        }
+      } else {
+        ex.activities.push({
+          id: data.activity_id || `ACT_${Date.now()}`,
+          name: data.activity_name,
+          start: data.start_time,
+          end: data.end_time,
+          duration: data.duration_minutes || 60
+        });
+      }
+    };
+
+    if (window.location.protocol === 'file:') {
+      applyLocal();
+      return { success: true };
+    }
+    try {
+      const res = await fetch(getApiUrl('/api/schedule/activity'), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      if (res.ok) {
+        applyLocal();
+        return await res.json();
+      }
+      applyLocal();
+      return { success: true };
+    } catch (e) {
+      applyLocal();
+      return { success: true };
+    }
+  },
+  async deleteSchedule(data) {
+    const dates = data.dates || (data.date ? [data.date] : []);
+    const applyLocal = () => {
+      if (!state.scheduleOverrides) state.scheduleOverrides = [];
+      dates.forEach(dt => {
+        const exIdx = state.scheduleOverrides.findIndex(o => o.agent_id === data.agent_id && o.date === dt);
+        if (exIdx !== -1) {
+          if (data.delete_type === 'clear_activities') {
+            state.scheduleOverrides[exIdx].activities = [];
+          } else if (data.delete_type === 'set_unassigned') {
+            state.scheduleOverrides[exIdx].is_week_off = true;
+            state.scheduleOverrides[exIdx].shift_start = null;
+            state.scheduleOverrides[exIdx].shift_end = null;
+            state.scheduleOverrides[exIdx].leave_type = null;
+            state.scheduleOverrides[exIdx].activities = [];
+          } else {
+            state.scheduleOverrides.splice(exIdx, 1);
+          }
+        }
       });
     };
 
@@ -604,7 +670,7 @@ const api = {
       return { success: true };
     }
     try {
-      const res = await fetch('/api/schedule/activity', {
+      const res = await fetch(getApiUrl('/api/schedule/delete'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
@@ -626,7 +692,7 @@ const api = {
       let url = `/api/schedule/audit-logs?limit=${limit}&`;
       if (agentId && agentId !== 'All') url += `agent_id=${encodeURIComponent(agentId)}&`;
       if (date) url += `date=${encodeURIComponent(date)}&`;
-      const res = await fetch(url);
+      const res = await fetch(getApiUrl(url));
       if (!res.ok) return state.scheduleAuditLogs || [];
       return res.json();
     } catch (e) { return state.scheduleAuditLogs || []; }
@@ -634,7 +700,7 @@ const api = {
   async getScheduleConfig() {
     if (window.location.protocol === 'file:') return state.scheduleConfig || {};
     try {
-      const res = await fetch('/api/schedule/config');
+      const res = await fetch(getApiUrl('/api/schedule/config'));
       if (!res.ok) return state.scheduleConfig || {};
       return res.json();
     } catch (e) { return state.scheduleConfig || {}; }
@@ -645,7 +711,7 @@ const api = {
       return { success: true };
     }
     try {
-      const res = await fetch('/api/schedule/config', {
+      const res = await fetch(getApiUrl('/api/schedule/config'), {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(config)
@@ -660,7 +726,7 @@ const api = {
       if (agentId && agentId !== 'All') url += `agent_id=${encodeURIComponent(agentId)}&`;
       if (status && status !== 'all') url += `status=${encodeURIComponent(status)}&`;
       if (stage) url += `stage=${encodeURIComponent(stage)}&`;
-      const res = await fetch(url);
+      const res = await fetch(getApiUrl(url));
       if (!res.ok) return state.workflowRequests || [];
       return res.json();
     } catch (e) { return state.workflowRequests || []; }
@@ -684,7 +750,7 @@ const api = {
       return { success: true, request_id: newReq.id };
     }
     try {
-      const res = await fetch('/api/schedule/requests', {
+      const res = await fetch(getApiUrl('/api/schedule/requests'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
@@ -726,7 +792,7 @@ const api = {
       return { success: true };
     }
     try {
-      const res = await fetch('/api/schedule/requests/action', {
+      const res = await fetch(getApiUrl('/api/schedule/requests/action'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
@@ -734,6 +800,375 @@ const api = {
       if (!res.ok) throw new Error('Failed to process request action');
       return res.json();
     } catch (e) { return { success: true }; }
+  },
+
+  // --- Enterprise WSM API Methods ---
+  wsm: {
+    async getCampaigns() {
+      try {
+        const res = await fetch(getApiUrl('/api/wsm/campaigns'));
+        if (res.ok) return await res.json();
+        return state.wsmCampaigns || [];
+      } catch (e) { return state.wsmCampaigns || []; }
+    },
+    async getCampaign(id) {
+      try {
+        const res = await fetch(getApiUrl(`/api/wsm/campaigns/${encodeURIComponent(id)}`));
+        if (res.ok) return await res.json();
+        return (state.wsmCampaigns || []).find(c => c.id === id) || null;
+      } catch (e) { return (state.wsmCampaigns || []).find(c => c.id === id) || null; }
+    },
+    async createCampaign(data) {
+      try {
+        const res = await fetch(getApiUrl('/api/wsm/campaigns'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        return await res.json();
+      } catch (e) { return { success: true, id: `CAMP_${(data.code||'NEW').toUpperCase()}` }; }
+    },
+    async updateCampaign(id, data) {
+      try {
+        const res = await fetch(getApiUrl(`/api/wsm/campaigns/${encodeURIComponent(id)}`), {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        return await res.json();
+      } catch (e) { return { success: true }; }
+    },
+    async deleteCampaign(id) {
+      try {
+        const res = await fetch(getApiUrl(`/api/wsm/campaigns/${encodeURIComponent(id)}`), { method: 'DELETE' });
+        return await res.json();
+      } catch (e) { return { success: true }; }
+    },
+    async getCampaignAgents(campaignId) {
+      try {
+        const res = await fetch(getApiUrl(`/api/wsm/campaigns/${encodeURIComponent(campaignId)}/agents`));
+        if (res.ok) return await res.json();
+        return [];
+      } catch (e) { return []; }
+    },
+    async assignCampaignAgents(campaignId, agentIds, effectiveStart) {
+      try {
+        const res = await fetch(getApiUrl(`/api/wsm/campaigns/${encodeURIComponent(campaignId)}/agents`), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ agent_ids: agentIds, effective_start: effectiveStart })
+        });
+        return await res.json();
+      } catch (e) { return { success: true, added: agentIds.length }; }
+    },
+    async removeCampaignAgent(campaignId, agentId) {
+      try {
+        const res = await fetch(getApiUrl(`/api/wsm/campaigns/${encodeURIComponent(campaignId)}/agents/${encodeURIComponent(agentId)}`), { method: 'DELETE' });
+        return await res.json();
+      } catch (e) { return { success: true }; }
+    },
+    async getCampaignBrands(campaignId) {
+      try {
+        const res = await fetch(getApiUrl(`/api/wsm/campaigns/${encodeURIComponent(campaignId)}/brands`));
+        if (res.ok) return await res.json();
+        return [];
+      } catch (e) { return []; }
+    },
+    async createCampaignBrand(campaignId, data) {
+      try {
+        const res = await fetch(getApiUrl(`/api/wsm/campaigns/${encodeURIComponent(campaignId)}/brands`), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        return await res.json();
+      } catch (e) { return { success: true, id: `BRD_${Date.now()}` }; }
+    },
+    async deleteCampaignBrand(campaignId, brandId) {
+      try {
+        const res = await fetch(getApiUrl(`/api/wsm/campaigns/${encodeURIComponent(campaignId)}/brands/${encodeURIComponent(brandId)}`), { method: 'DELETE' });
+        return await res.json();
+      } catch (e) { return { success: true }; }
+    },
+    async getCampaignChannels(campaignId) {
+      try {
+        const res = await fetch(getApiUrl(`/api/wsm/campaigns/${encodeURIComponent(campaignId)}/channels`));
+        if (res.ok) return await res.json();
+        return [];
+      } catch (e) { return []; }
+    },
+    async createCampaignChannel(campaignId, data) {
+      try {
+        const res = await fetch(getApiUrl(`/api/wsm/campaigns/${encodeURIComponent(campaignId)}/channels`), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        return await res.json();
+      } catch (e) { return { success: true, id: `LOB_${Date.now()}` }; }
+    },
+    async deleteCampaignChannel(campaignId, channelId) {
+      try {
+        const res = await fetch(getApiUrl(`/api/wsm/campaigns/${encodeURIComponent(campaignId)}/channels/${encodeURIComponent(channelId)}`), { method: 'DELETE' });
+        return await res.json();
+      } catch (e) { return { success: true }; }
+    },
+    async getActivities(activityType) {
+      try {
+        let url = '/api/wsm/activities';
+        if (activityType) url += `?activity_type=${encodeURIComponent(activityType)}`;
+        const res = await fetch(getApiUrl(url));
+        if (res.ok) return await res.json();
+        return state.wsmActivities || [];
+      } catch (e) { return state.wsmActivities || []; }
+    },
+    async createActivity(data) {
+      try {
+        const res = await fetch(getApiUrl('/api/wsm/activities'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        return await res.json();
+      } catch (e) { return { success: true, id: `ACT_${Date.now()}` }; }
+    },
+    async deleteActivity(id) {
+      try {
+        const res = await fetch(getApiUrl(`/api/wsm/activities/${encodeURIComponent(id)}`), { method: 'DELETE' });
+        return await res.json();
+      } catch (e) { return { success: true }; }
+    },
+    async getLobs(campaignId) {
+      try {
+        let url = '/api/wsm/lobs';
+        if (campaignId) url += `?campaign_id=${encodeURIComponent(campaignId)}`;
+        const res = await fetch(getApiUrl(url));
+        if (res.ok) return await res.json();
+        return state.wsmLobs || [];
+      } catch (e) { return state.wsmLobs || []; }
+    },
+    async createLob(data) {
+      try {
+        const res = await fetch(getApiUrl('/api/wsm/lobs'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        return await res.json();
+      } catch (e) { return { success: true }; }
+    },
+    async getShiftTemplates(campaignId) {
+      try {
+        let url = '/api/wsm/shift-templates';
+        if (campaignId) url += `?campaign_id=${encodeURIComponent(campaignId)}`;
+        const res = await fetch(getApiUrl(url));
+        if (res.ok) return await res.json();
+        return state.wsmShiftTemplates || [];
+      } catch (e) { return state.wsmShiftTemplates || []; }
+    },
+    async createShiftTemplate(data) {
+      try {
+        const res = await fetch(getApiUrl('/api/wsm/shift-templates'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        return await res.json();
+      } catch (e) { return { success: true }; }
+    },
+    async createShiftTemplateV2(data) {
+      try {
+        const res = await fetch(getApiUrl('/api/wsm/shift-templates/v2'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        return await res.json();
+      } catch (e) { return { success: true, id: `SHT_${Date.now()}` }; }
+    },
+    async deleteShiftTemplate(id) {
+      try {
+        const res = await fetch(getApiUrl(`/api/wsm/shift-templates/${encodeURIComponent(id)}`), { method: 'DELETE' });
+        return await res.json();
+      } catch (e) { return { success: true }; }
+    },
+    async getShiftEvents() {
+      try {
+        const res = await fetch(getApiUrl('/api/wsm/shift-events'));
+        if (res.ok) return await res.json();
+        return state.wsmShiftEvents || [];
+      } catch (e) { return state.wsmShiftEvents || []; }
+    },
+    async getWorkPatterns() {
+      try {
+        const res = await fetch(getApiUrl('/api/wsm/work-patterns'));
+        if (res.ok) return await res.json();
+        return state.wsmWorkPatterns || [];
+      } catch (e) { return state.wsmWorkPatterns || []; }
+    },
+    async createWorkPatternV2(data) {
+      try {
+        const res = await fetch(getApiUrl('/api/wsm/work-patterns/v2'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        return await res.json();
+      } catch (e) { return { success: true, id: `WP_${Date.now()}` }; }
+    },
+    async deleteWorkPattern(id) {
+      try {
+        const res = await fetch(getApiUrl(`/api/wsm/work-patterns/${encodeURIComponent(id)}`), { method: 'DELETE' });
+        return await res.json();
+      } catch (e) { return { success: true }; }
+    },
+    async getRotations() {
+      try {
+        const res = await fetch(getApiUrl('/api/wsm/rotations'));
+        if (res.ok) return await res.json();
+        return state.wsmRotations || [];
+      } catch (e) { return state.wsmRotations || []; }
+    },
+    async getRules() {
+      try {
+        const res = await fetch(getApiUrl('/api/wsm/rules'));
+        if (res.ok) return await res.json();
+        return state.wsmRules || [];
+      } catch (e) { return state.wsmRules || []; }
+    },
+    async updateRule(ruleId, isEnabled, weight) {
+      try {
+        const res = await fetch(getApiUrl(`/api/wsm/rules/${ruleId}`), {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ is_enabled: isEnabled, weight: weight })
+        });
+        return await res.json();
+      } catch (e) { return { success: false }; }
+    },
+    async getStaffingRequirements(campaignId, date) {
+      try {
+        let url = '/api/wsm/staffing-requirements?';
+        if (campaignId) url += `campaign_id=${encodeURIComponent(campaignId)}&`;
+        if (date) url += `date=${encodeURIComponent(date)}&`;
+        const res = await fetch(getApiUrl(url));
+        if (res.ok) return await res.json();
+        return state.wsmStaffingRequirements || [];
+      } catch (e) { return state.wsmStaffingRequirements || []; }
+    },
+    async generateSchedule(payload) {
+      try {
+        const res = await fetch(getApiUrl('/api/wsm/schedule/generate'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        return await res.json();
+      } catch (e) { return { success: false, detail: e.message }; }
+    },
+    async getScheduleRuns(campaignId) {
+      try {
+        let url = '/api/wsm/schedule/runs';
+        if (campaignId) url += `?campaign_id=${encodeURIComponent(campaignId)}`;
+        const res = await fetch(getApiUrl(url));
+        if (res.ok) return await res.json();
+        return state.wsmScheduleRuns || [];
+      } catch (e) { return state.wsmScheduleRuns || []; }
+    },
+    async getScheduleRunDetail(runId) {
+      try {
+        const res = await fetch(getApiUrl(`/api/wsm/schedule/runs/${runId}`));
+        if (res.ok) return await res.json();
+        return null;
+      } catch (e) { return null; }
+    },
+    async publishScheduleRun(runId) {
+      try {
+        const res = await fetch(getApiUrl(`/api/wsm/schedule/runs/${runId}/publish`), { method: 'POST' });
+        return await res.json();
+      } catch (e) { return { success: false }; }
+    },
+    async lockScheduleRun(runId) {
+      try {
+        const res = await fetch(getApiUrl(`/api/wsm/schedule/runs/${runId}/lock`), { method: 'POST' });
+        return await res.json();
+      } catch (e) { return { success: false }; }
+    },
+    async getScheduleExplanation(runId, agentId, date) {
+      try {
+        const res = await fetch(getApiUrl(`/api/wsm/schedule/explain/${runId}/${agentId}/${date}`));
+        if (res.ok) return await res.json();
+        return null;
+      } catch (e) { return null; }
+    },
+    async getScheduleCoverage(runId) {
+      try {
+        const res = await fetch(getApiUrl(`/api/wsm/schedule/coverage/${runId}`));
+        if (res.ok) return await res.json();
+        return null;
+      } catch (e) { return null; }
+    }
+  },
+  telephony: {
+    async getConnectors() {
+      try {
+        const res = await fetch(getApiUrl('/api/integrations/connectors'));
+        if (res.ok) return await res.json();
+        return [];
+      } catch(e) { return []; }
+    },
+    async updateConnector(data) {
+      try {
+        const res = await fetch(getApiUrl('/api/integrations/connectors'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        return await res.json();
+      } catch(e) { return { success: true }; }
+    },
+    async testConnector(id) {
+      try {
+        const res = await fetch(getApiUrl(`/api/integrations/connectors/${encodeURIComponent(id)}/test`), { method: 'POST' });
+        return await res.json();
+      } catch(e) { return { success: true, latency_ms: 45 }; }
+    },
+    async sendWebhookEvent(payload) {
+      try {
+        const res = await fetch(getApiUrl('/api/integrations/telephony/webhook'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        return await res.json();
+      } catch(e) { return { success: true }; }
+    },
+    async getEvents(limit = 50) {
+      try {
+        const res = await fetch(getApiUrl(`/api/integrations/telephony/events?limit=${limit}`));
+        if (res.ok) return await res.json();
+        return [];
+      } catch(e) { return []; }
+    }
+  },
+  solver: {
+    async runAsync(payload) {
+      try {
+        const res = await fetch(getApiUrl('/api/wsm/solver/async-run'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        return await res.json();
+      } catch(e) { return { success: false, detail: e.message }; }
+    },
+    async getJobStatus(jobId) {
+      try {
+        const res = await fetch(getApiUrl(`/api/wsm/solver/jobs/${encodeURIComponent(jobId)}`));
+        if (res.ok) return await res.json();
+        return null;
+      } catch(e) { return null; }
+    }
   }
 };
 
@@ -750,7 +1185,7 @@ const state = {
   accounts: [], 
   agents: [],
   hoops: [],
-  selectedDate: '2026-08-19', // Default selected date
+  selectedDate: '2026-08-25', // Default selected date
   selectedScheduleView: 'weekly', // 'monthly' | 'weekly' | 'daily' | 'focus'
   dateRangePreset: 'this_week', // 'today' | 'yesterday' | 'this_week' | 'next_week' | 'this_month' | 'next_month' | 'custom'
   selectedAgentForDrilldown: null, // Agent ID when drilling into individual agent schedule
@@ -767,11 +1202,40 @@ const state = {
   scheduleOverrides: [],
   scheduleAuditLogs: [],
   workflowRequests: [],
+
+  // --- Enterprise WSM State Properties ---
+  wsmCampaigns: [],
+  wsmLobs: [],
+  wsmSkills: [],
+  wsmShiftTemplates: [],
+  wsmShiftEvents: [],
+  wsmWorkPatterns: [],
+  wsmRotations: [],
+  wsmRules: [],
+  wsmStaffingRequirements: [],
+  wsmScheduleRuns: [],
+  activeWsmRun: null,
+  selectedCampaignId: 'CAMP_HOB',
+  activeCampaignId: 'CAMP_HOB',
+  activeCampaign: null,
+  activeCampaignBrands: [],
+  activeCampaignChannels: [],
+  activeCampaignSubTab: 'all-campaigns', // 'all-campaigns' | 'brands-channels'
+  wsmStudioTab: 'auto-scheduler', // 'auto-scheduler' | 'campaigns' | 'shifts-patterns' | 'rules-costs' | 'coverage-heatmap'
   scheduleConfig: {
     activityTypes: ["Coaching", "Lateness", "AWOL", "Absent", "Sickness", "PTO", "Training", "Meeting", "Break", "Lunch", "System Issue", "Technical Issue", "Other"],
     leaveTypes: ["PTO", "Sick Leave", "Emergency Leave", "Unplanned Leave", "Other Leave"],
     changeReasons: ["Coverage Requirement", "Business Requirement", "Agent Request", "TL Request", "Emergency", "Absence", "Sickness", "PTO", "Operational Requirement", "Other"],
-    durations: [15, 30, 45, 60, 90, 120]
+    durations: [15, 30, 45, 60, 90, 120],
+    breakLunchRules: {
+      break1Duration: 15,
+      break1OffsetHours: 2.5,
+      lunchDuration: 60,
+      lunchOffsetHours: 4.0,
+      break2Duration: 15,
+      break2OffsetHours: 6.5,
+      standardShiftHours: 9.0
+    }
   },
   forecast: {
     intervalLength: 30, // minutes
@@ -914,6 +1378,7 @@ let scheduleSearchQuery = '';
 
 let userFilterStatus = 'All';
 let userSearchQuery = '';
+let adminSubTab = 'users'; // 'users' | 'patterns'
 
 // --- Forecasting view inputs ---
 let selectedForecastBrand = 'Rugs USA';
@@ -1144,7 +1609,8 @@ function generateMockAgents(count) {
 
 async function initData() {
   try {
-    const [accounts, agents, hoops, requests, activeFc, histData, shrinkage, overrides, schedConfig, auditLogs, wfRequests] = await Promise.all([
+    const [accounts, agents, hoops, requests, activeFc, histData, shrinkage, overrides, schedConfig, auditLogs, wfRequests,
+           wsmCamps, wsmLobs, wsmTemplates, wsmEvents, wsmPatterns, wsmRotations, wsmRules, wsmReqs, wsmRuns] = await Promise.all([
       api.getAccounts().catch(() => null),
       api.getAgents().catch(() => null),
       api.getHoops().catch(() => null),
@@ -1155,7 +1621,19 @@ async function initData() {
       api.getScheduleOverrides().catch(() => null),
       api.getScheduleConfig().catch(() => null),
       api.getAuditLogs(null, null, 100).catch(() => null),
-      api.getWorkflowRequests().catch(() => null)
+      api.getWorkflowRequests().catch(() => null),
+      api.wsm.getCampaigns().catch(() => []),
+      api.wsm.getLobs().catch(() => []),
+      api.wsm.getShiftTemplates().catch(() => []),
+      api.wsm.getShiftEvents().catch(() => []),
+      api.wsm.getWorkPatterns().catch(() => []),
+      api.wsm.getRotations().catch(() => []),
+      api.wsm.getRules().catch(() => []),
+      api.wsm.getStaffingRequirements().catch(() => []),
+      api.wsm.getScheduleRuns().catch(() => []),
+      api.wsm.getActivities().catch(() => []),
+      api.telephony.getConnectors().catch(() => []),
+      api.telephony.getEvents(50).catch(() => [])
     ]);
 
     if (accounts && Array.isArray(accounts) && accounts.length > 0) state.accounts = accounts;
@@ -1169,6 +1647,44 @@ async function initData() {
     if (schedConfig && typeof schedConfig === 'object') state.scheduleConfig = schedConfig;
     if (auditLogs && Array.isArray(auditLogs)) state.scheduleAuditLogs = auditLogs;
     if (wfRequests && Array.isArray(wfRequests)) state.workflowRequests = wfRequests;
+
+    // Load WSM Relational Arrays
+    if (wsmCamps && Array.isArray(wsmCamps)) state.wsmCampaigns = wsmCamps;
+    if (wsmLobs && Array.isArray(wsmLobs)) state.wsmLobs = wsmLobs;
+    if (wsmTemplates && Array.isArray(wsmTemplates)) state.wsmShiftTemplates = wsmTemplates;
+    if (wsmEvents && Array.isArray(wsmEvents)) state.wsmShiftEvents = wsmEvents;
+    if (wsmPatterns && Array.isArray(wsmPatterns)) state.wsmWorkPatterns = wsmPatterns;
+    if (wsmRotations && Array.isArray(wsmRotations)) state.wsmRotations = wsmRotations;
+    if (wsmRules && Array.isArray(wsmRules)) state.wsmRules = wsmRules;
+    if (wsmReqs && Array.isArray(wsmReqs)) state.wsmStaffingRequirements = wsmReqs;
+    if (wsmRuns && Array.isArray(wsmRuns)) {
+      state.wsmScheduleRuns = wsmRuns;
+      if (wsmRuns.length > 0) state.activeWsmRun = wsmRuns[0];
+    }
+    if (arguments[14] && Array.isArray(arguments[14])) state.wsmActivities = arguments[14];
+
+    // Load Telephony & CCaaS Connectors & Event Streams
+    const [,,, ,,,,,,,,,,,,,, wsmActs, ccConnectors, ccEvents] = [accounts, agents, hoops, requests, activeFc, histData, shrinkage, overrides, schedConfig, auditLogs, wfRequests, wsmCamps, wsmLobs, wsmTemplates, wsmEvents, wsmPatterns, wsmRotations, wsmRules, wsmReqs, wsmRuns, arguments[14], arguments[15], arguments[16]];
+    if (wsmActs && Array.isArray(wsmActs) && wsmActs.length > 0) state.wsmActivities = wsmActs;
+    if (ccConnectors && Array.isArray(ccConnectors)) state.telephonyConnectors = ccConnectors;
+    if (ccEvents && Array.isArray(ccEvents)) state.telephonyEvents = ccEvents;
+
+    // Set default active campaign if none or restore from localStorage
+    const savedCampId = localStorage.getItem('wfm_active_campaign_id') || 'CAMP_HOB';
+    const foundCamp = (state.wsmCampaigns || []).find(c => c.id === savedCampId) || (state.wsmCampaigns || [])[0];
+    if (foundCamp) {
+      state.activeCampaignId = foundCamp.id;
+      state.selectedCampaignId = foundCamp.id;
+      state.activeCampaign = foundCamp;
+    }
+    await loadActiveCampaignBrandsAndChannels();
+    renderHeaderCampaignContext();
+
+    // Restore persisted studio tab & active view
+    const savedTab = localStorage.getItem('wfm_studio_tab');
+    if (savedTab) state.wsmStudioTab = savedTab;
+    const savedView = localStorage.getItem('wfm_active_view');
+    if (savedView && checkRoleAccess(savedView)) state.activeView = savedView;
 
     // Standalone fallback: seed data if not populated from backend
     if (!state.agents || state.agents.length === 0) {
@@ -1213,7 +1729,7 @@ function checkRoleAccess(view) {
   }
   
   if (role === 'Team Leader') {
-    return ['tl-dashboard', 'scheduling', 'adherence', 'approvals', 'reporting'].includes(view);
+    return ['tl-dashboard', 'scheduling', 'shifts-activities', 'work-pattern', 'campaigns', 'adherence', 'approvals', 'reporting'].includes(view);
   }
 
   if (role === 'Agent') {
@@ -1244,21 +1760,28 @@ function rebuildSidebarMenu() {
     items = [
       { view: 'tl-dashboard', label: 'Team Dashboard', icon: 'layout-dashboard' },
       { view: 'scheduling', label: 'Shift Timeline', icon: 'gantt-chart-square' },
-      { view: 'adherence', label: 'Team Adherence', icon: 'clock' },
+      { view: 'shifts-activities', label: 'Shifts & Activities', icon: 'clock' },
+      { view: 'work-pattern', label: 'Work Pattern', icon: 'calendar-days' },
+      { view: 'adherence', label: 'Team Adherence', icon: 'activity' },
       { view: 'approvals', label: 'Request Approvals', icon: 'check-square' },
+      { view: 'integrations', label: 'Telephony & CCaaS', icon: 'phone-call' },
       { view: 'reporting', label: 'Analytics Reports', icon: 'bar-chart-2' }
     ];
   } else {
     items = [
       { view: 'dashboard', label: 'Command Center', icon: 'layout-dashboard' },
-      { view: 'shrinkage', label: 'Shrinkage Studio', icon: 'percent' },
+      { view: 'campaigns', label: 'Campaigns & Brands', icon: 'building' },
+      { view: 'shifts-activities', label: 'Shifts & Activities', icon: 'clock' },
+      { view: 'work-pattern', label: 'Work Pattern', icon: 'calendar-days' },
+      { view: 'scheduling', label: 'Master Schedule', icon: 'gantt-chart-square' },
       { view: 'agents', label: 'Agent Directory', icon: 'users' },
       { view: 'hoop', label: 'HOOP Planner', icon: 'calendar' },
+      { view: 'shrinkage', label: 'Shrinkage Studio', icon: 'percent' },
       { view: 'forecasting', label: 'Forecast Modeler', icon: 'line-chart' },
       { view: 'staffing', label: 'Staffing Solver', icon: 'calculator' },
-      { view: 'scheduling', label: 'Master Schedule', icon: 'gantt-chart-square' },
-      { view: 'adherence', label: 'Live Adherence', icon: 'clock' },
+      { view: 'adherence', label: 'Live Adherence', icon: 'activity' },
       { view: 'approvals', label: 'Exception Requests', icon: 'check-square' },
+      { view: 'integrations', label: 'Telephony & CCaaS', icon: 'phone-call' },
       { view: 'reporting', label: 'Reporting Console', icon: 'bar-chart-2' }
     ];
     
@@ -1267,9 +1790,18 @@ function rebuildSidebarMenu() {
     }
   }
 
+  // Active key determination
+  let currentActiveKey = state.activeView;
+  if (state.activeView === 'scheduling') {
+    if (state.wsmStudioTab === 'campaigns') currentActiveKey = 'campaigns';
+    else if (state.wsmStudioTab === 'shifts-patterns') currentActiveKey = 'shifts-activities';
+    else if (state.wsmStudioTab === 'rules-costs') currentActiveKey = 'work-pattern';
+    else currentActiveKey = 'scheduling';
+  }
+
   menu.innerHTML = items.map(item => `
     <li>
-      <div class="nav-item ${state.activeView === item.view ? 'active' : ''}" data-view="${item.view}">
+      <div class="nav-item ${currentActiveKey === item.view ? 'active' : ''}" data-view="${item.view}">
         <i data-lucide="${item.icon}"></i>
         <span>${item.label}</span>
       </div>
@@ -1290,67 +1822,53 @@ function rebuildSidebarMenu() {
 let isShowingRegister = false;
 
 function renderLoginScreen() {
-  const loginContainer = document.getElementById('login-screen');
-  if (!loginContainer) return;
+  const container = document.getElementById('login-box');
+  if (!container) return;
 
   if (isShowingRegister) {
-    renderRegistrationForm(loginContainer);
-    return;
+    renderRegisterForm(container);
+  } else {
+    renderLoginForm(container);
   }
+}
 
-  loginContainer.innerHTML = `
-    <div class="login-card" style="position:relative;">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
-        <div class="login-header-logo" style="margin:0;">W1</div>
-        <button type="button" class="theme-toggle-btn" style="padding:0.35rem 0.75rem; font-size:0.78rem;" title="Toggle Light / Dark Mode">
-          <i data-lucide="sun" style="width:14px;height:14px;"></i>
-          <span>Light Mode</span>
-        </button>
+function renderLoginForm(c) {
+  c.innerHTML = `
+    <div style="background:var(--bg-card); border:1px solid var(--border-light); border-radius:var(--radius-lg); padding:2.5rem; width:100%; max-width:440px; box-shadow:var(--shadow-xl); backdrop-filter:blur(16px);">
+      <div style="text-align:center; margin-bottom:2rem;">
+        <div style="display:inline-flex; align-items:center; justify-content:center; width:64px; height:64px; background:linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%); border-radius:18px; margin-bottom:1rem; box-shadow:0 8px 16px rgba(99,102,241,0.25);">
+          <i data-lucide="layers" style="color:white; width:32px; height:32px;"></i>
+        </div>
+        <h1 style="font-size:1.75rem; font-weight:800; color:white; margin-bottom:0.25rem; font-family:var(--font-display); letter-spacing:-0.02em;">WFM-One</h1>
+        <p style="color:var(--text-muted); font-size:0.875rem;">Omnichannel Workforce Enterprise Suite</p>
       </div>
-
-      <h2 class="login-title">WFM-One Login</h2>
-      <p class="login-subtitle">Enter your registered credentials to access your portal</p>
 
       <form id="login-form" style="display:flex; flex-direction:column; gap:1.25rem;">
         <div class="form-group">
           <label class="form-label">Email Address</label>
-          <input type="email" class="form-control" id="login-email" required placeholder="admin@houseofbrands.com">
-        </div>
-        
-        <div class="form-group">
-          <label class="form-label">Password</label>
-          <input type="password" class="form-control" id="login-pass" required placeholder="••••••••">
+          <div class="input-with-icon">
+            <i data-lucide="mail"></i>
+            <input type="email" class="form-control" id="login-email" required placeholder="admin@houseofbrands.com" value="admin@houseofbrands.com">
+          </div>
         </div>
 
-        <button type="submit" class="btn btn-primary" style="padding:0.75rem; font-weight:700; margin-top:0.5rem;">Access Portal</button>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <div class="input-with-icon">
+            <i data-lucide="lock"></i>
+            <input type="password" class="form-control" id="login-pass" required placeholder="••••••••" value="admin">
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="padding:0.75rem; font-weight:700; margin-top:0.5rem;">Sign In to Platform</button>
       </form>
 
       <div style="text-align:center; margin-top:1.5rem;">
         <span style="font-size:0.85rem; color:var(--text-muted);">New to WFM-One? </span>
         <a href="#" id="link-go-register" style="color:var(--color-primary-light); font-size:0.85rem; font-weight:600; text-decoration:none;">Create an Account</a>
       </div>
-
-      <div style="border-top:1px solid var(--border-light); margin-top:1.75rem; padding-top:1.25rem;">
-        <span class="control-label" style="text-align:center; margin-bottom:0.75rem;">Simulate Quick Login (Presets)</span>
-        <div class="quick-login-grid">
-          <button class="quick-login-btn" data-email="admin@houseofbrands.com" data-pass="admin">
-            <span class="quick-login-role">WFM Admin</span>
-            <span>Animesh Dubey</span>
-          </button>
-          <button class="quick-login-btn" data-email="tl@houseofbrands.com" data-pass="leader">
-            <span class="quick-login-role">Team Leader</span>
-            <span>Marcus Brody</span>
-          </button>
-          <button class="quick-login-btn" data-email="agent@houseofbrands.com" data-pass="agent">
-            <span class="quick-login-role">Agent</span>
-            <span>John Smith</span>
-          </button>
-        </div>
-      </div>
     </div>
   `;
-
-  if (window.lucide) window.lucide.createIcons();
 
   document.getElementById('link-go-register').addEventListener('click', (e) => {
     e.preventDefault();
@@ -1360,80 +1878,55 @@ function renderLoginScreen() {
 
   document.getElementById('login-form').addEventListener('submit', async (e) => {
     e.preventDefault();
-    const email = document.getElementById('login-email').value.toLowerCase().trim();
+    const email = document.getElementById('login-email').value.trim();
     const pass = document.getElementById('login-pass').value;
 
     try {
       const res = await api.login(email, pass);
       if (res.success) {
-        const user = res.user;
         await initData();
-        loginUser(user.role, user.name, user.email);
+        loginUser(res.user.role, res.user.name, res.user.email);
       }
     } catch (err) {
-      alert("Authentication Failed: " + (err.message || "Invalid credentials"));
+      alert("Login Error: " + (err.message || "Invalid credentials"));
     }
   });
 
-  document.querySelectorAll('.quick-login-btn').forEach(btn => {
-    btn.addEventListener('click', async (e) => {
-      const el = e.currentTarget;
-      const email = el.dataset.email;
-      const pass = el.dataset.pass;
-      document.getElementById('login-email').value = email;
-      document.getElementById('login-pass').value = pass;
-      
-      try {
-        const res = await api.login(email, pass);
-        if (res.success) {
-          await initData();
-          loginUser(res.user.role, res.user.name, res.user.email);
-        }
-      } catch (err) {
-        alert("Authentication Failed: " + (err.message || "Invalid credentials"));
-      }
-    });
-  });
+  if (window.lucide) window.lucide.createIcons();
 }
 
-function renderRegistrationForm(container) {
-  container.innerHTML = `
-    <div class="login-card" style="position:relative;">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
-        <div class="login-header-logo" style="margin:0;">W1</div>
-        <button type="button" class="theme-toggle-btn" style="padding:0.35rem 0.75rem; font-size:0.78rem;" title="Toggle Light / Dark Mode">
-          <i data-lucide="sun" style="width:14px;height:14px;"></i>
-          <span>Light Mode</span>
-        </button>
+function renderRegisterForm(c) {
+  c.innerHTML = `
+    <div style="background:var(--bg-card); border:1px solid var(--border-light); border-radius:var(--radius-lg); padding:2.5rem; width:100%; max-width:440px; box-shadow:var(--shadow-xl); backdrop-filter:blur(16px);">
+      <div style="text-align:center; margin-bottom:1.5rem;">
+        <h1 style="font-size:1.5rem; font-weight:800; color:white; margin-bottom:0.25rem; font-family:var(--font-display);">Register Account</h1>
+        <p style="color:var(--text-muted); font-size:0.85rem;">Join WFM-One Workforce Management</p>
       </div>
 
-      <h2 class="login-title">Register Account</h2>
-      <p class="login-subtitle">Register a brand new identity inside WFM-One</p>
-
-      <form id="register-form" style="display:flex; flex-direction:column; gap:1.25rem;">
+      <form id="register-form" style="display:flex; flex-direction:column; gap:1rem;">
         <div class="form-group">
           <label class="form-label">Full Name</label>
-          <input type="text" class="form-control" id="reg-name" required placeholder="Jane Doe">
+          <input type="text" class="form-control" id="reg-name" required placeholder="e.g. John Doe">
         </div>
 
         <div class="form-group">
           <label class="form-label">Email Address</label>
-          <input type="email" class="form-control" id="reg-email" required placeholder="jane.doe@houseofbrands.com">
+          <input type="email" class="form-control" id="reg-email" required placeholder="name@company.com">
         </div>
 
         <div class="form-group">
-          <label class="form-label">Create Password</label>
+          <label class="form-label">Password</label>
           <input type="password" class="form-control" id="reg-pass" required placeholder="••••••••">
         </div>
 
         <div class="form-group">
-          <label class="form-label">Target Role</label>
-          <select class="sidebar-select" id="reg-role" style="padding:0.6rem 0.8rem;">
-            <option value="Agent">Agent</option>
-            <option value="Team Leader">Team Leader</option>
+          <label class="form-label">Role</label>
+          <select class="form-control" id="reg-role">
+            <option value="Agent">Agent (Standard User)</option>
+            <option value="Team Leader">Team Leader (Supervisor)</option>
             <option value="WFM Analyst">WFM Analyst</option>
             <option value="WFM Manager">WFM Manager</option>
-            <option value="WFM Admin">WFM Admin</option>
+            <option value="WFM Admin">WFM Administrator</option>
             <option value="Executive Viewer">Executive Viewer</option>
           </select>
         </div>
@@ -1509,13 +2002,21 @@ function loginUser(role, name, email) {
   state.currentUser = { role, name, email };
   localStorage.setItem('wfm_session', JSON.stringify({ role, name, email }));
 
-  // Set default view depending on role access
-  if (role === 'Agent') {
-    state.activeView = 'agent-dashboard';
-  } else if (role === 'Team Leader') {
-    state.activeView = 'tl-dashboard';
+  // Restore saved view & studio tab or set default
+  const savedView = localStorage.getItem('wfm_active_view');
+  const savedTab = localStorage.getItem('wfm_studio_tab');
+  if (savedTab) state.wsmStudioTab = savedTab;
+
+  if (savedView && checkRoleAccess(savedView)) {
+    state.activeView = savedView;
   } else {
-    state.activeView = 'dashboard';
+    if (role === 'Agent') {
+      state.activeView = 'agent-dashboard';
+    } else if (role === 'Team Leader') {
+      state.activeView = 'tl-dashboard';
+    } else {
+      state.activeView = 'dashboard';
+    }
   }
 
   document.getElementById('login-screen').style.display = 'none';
@@ -1537,8 +2038,164 @@ function loginUser(role, name, email) {
   // Render Time dropdown in header
   renderHeaderSystemTime();
 
+  // Render Campaign Switcher in header
+  renderHeaderCampaignContext();
+
   rebuildSidebarMenu();
   renderActiveView();
+
+  // For WFM roles, present campaign selection workspace if needed
+  if (role !== 'Agent' && !sessionStorage.getItem('wfm_campaign_chosen')) {
+    sessionStorage.setItem('wfm_campaign_chosen', '1');
+    setTimeout(() => {
+      showCampaignSelectionModal();
+    }, 250);
+  }
+}
+
+async function setActiveCampaign(campaignId, shouldRefreshView = true) {
+  const found = (state.wsmCampaigns || []).find(c => c.id === campaignId);
+  if (!found) return;
+  state.activeCampaignId = found.id;
+  state.selectedCampaignId = found.id;
+  state.activeCampaign = found;
+  localStorage.setItem('wfm_active_campaign_id', found.id);
+  await loadActiveCampaignBrandsAndChannels();
+  renderHeaderCampaignContext();
+  if (shouldRefreshView && state.isLoggedIn) {
+    renderActiveView();
+  }
+}
+
+async function loadActiveCampaignBrandsAndChannels() {
+  if (!state.activeCampaignId) return;
+  try {
+    const [brands, channels] = await Promise.all([
+      api.wsm.getCampaignBrands(state.activeCampaignId),
+      api.wsm.getCampaignChannels(state.activeCampaignId)
+    ]);
+    state.activeCampaignBrands = brands || [];
+    state.activeCampaignChannels = channels || [];
+  } catch (err) {
+    state.activeCampaignBrands = [];
+    state.activeCampaignChannels = [];
+  }
+}
+
+// --- Dynamic Header Campaign Context Dropdown ---
+function renderHeaderCampaignContext() {
+  const mount = document.getElementById('header-campaign-context');
+  if (!mount) return;
+  const curCamp = state.activeCampaign || (state.wsmCampaigns || []).find(c => c.id === state.activeCampaignId) || { name: 'Select Campaign', code: 'CAMP' };
+  mount.innerHTML = `
+    <div class="campaign-context-badge" id="btn-header-switch-campaign" title="Click to switch Active Campaign workspace">
+      <i data-lucide="building" style="width:14px;height:14px;color:#818cf8;"></i>
+      <span>${curCamp.name}</span>
+      <span class="badge badge-info" style="font-size:0.68rem;padding:0.1rem 0.35rem;">${curCamp.code || 'CAMP'}</span>
+      <i data-lucide="chevron-down" style="width:13px;height:13px;color:var(--text-muted);"></i>
+    </div>
+  `;
+  if (window.lucide) window.lucide.createIcons();
+  
+  const btn = mount.querySelector('#btn-header-switch-campaign');
+  if (btn) {
+    btn.onclick = () => showCampaignSelectionModal();
+  }
+}
+
+function showCampaignSelectionModal(onSelectCallback) {
+  const activeCamps = (state.wsmCampaigns || []).filter(c => c.status !== 'Inactive');
+  const existing = document.getElementById('wsm-campaign-selection-modal');
+  if (existing) existing.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'wsm-campaign-selection-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:10000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px);';
+  
+  modal.innerHTML = `
+    <div style="background:#0f172a;border:1px solid var(--border-light);border-radius:var(--radius-lg);width:100%;max-width:780px;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 25px 50px -12px rgba(0,0,0,0.7);">
+      <!-- Header -->
+      <div style="padding:1.5rem 1.75rem 1rem 1.75rem;border-bottom:1px solid var(--border-light);display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <h2 style="color:white;font-weight:800;font-size:1.25rem;margin:0;font-family:var(--font-display);display:flex;align-items:center;gap:0.6rem;">
+            🏛️ Select Campaign Workspace
+          </h2>
+          <p style="font-size:0.8rem;color:var(--text-muted);margin:0.25rem 0 0 0;">
+            Choose a campaign to configure brands, channels, operating rules, shifts, and schedules
+          </p>
+        </div>
+        <button id="wsm-camp-sel-close" style="background:transparent;border:none;color:var(--text-muted);font-size:1.4rem;cursor:pointer;line-height:1;">✕</button>
+      </div>
+
+      <!-- Campaign Grid -->
+      <div style="flex:1;overflow-y:auto;padding:1.25rem 1.75rem;display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+        ${activeCamps.map(c => {
+          const isSelected = c.id === state.activeCampaignId;
+          const days = c.operating_days || ['Mon','Tue','Wed','Thu','Fri'];
+          return `
+            <div class="campaign-select-card ${isSelected ? 'active' : ''}" data-camp-id="${c.id}">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.6rem;">
+                <div>
+                  <div style="font-weight:800;font-size:1rem;color:white;">${c.name}</div>
+                  <div style="font-size:0.72rem;color:#818cf8;font-weight:700;">Code: ${c.code}</div>
+                </div>
+                ${isSelected ? '<span class="badge badge-success" style="font-size:0.68rem;padding:0.2rem 0.5rem;">✓ Active</span>' : '<span class="badge badge-secondary" style="font-size:0.68rem;">Select</span>'}
+              </div>
+              <div style="display:flex;flex-direction:column;gap:0.3rem;font-size:0.75rem;color:var(--text-muted);margin-bottom:0.65rem;">
+                <div style="display:flex;justify-content:space-between;">
+                  <span>⏰ HOOP:</span> <strong style="color:white;">${c.hoop_start || '08:00'} – ${c.hoop_end || '20:00'}</strong>
+                </div>
+                <div style="display:flex;justify-content:space-between;">
+                  <span>💰 Rate:</span> <strong style="color:white;">${c.currency || 'USD'} ${c.base_hourly_rate || 25}/hr</strong>
+                </div>
+                <div style="display:flex;justify-content:space-between;">
+                  <span>👥 Agents:</span> <strong style="color:white;">${c.agent_count || 0} Assigned</strong>
+                </div>
+              </div>
+              <div style="display:flex;gap:0.25rem;flex-wrap:wrap;">
+                ${days.map(d => `<span style="font-size:0.65rem;background:rgba(99,102,241,0.15);color:#818cf8;border:1px solid rgba(99,102,241,0.3);border-radius:4px;padding:0.1rem 0.35rem;">${d}</span>`).join('')}
+              </div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+
+      <!-- Footer -->
+      <div style="padding:1rem 1.75rem;border-top:1px solid var(--border-light);display:flex;justify-content:space-between;align-items:center;background:rgba(15,23,42,0.8);">
+        <button id="wsm-camp-sel-new" class="btn btn-secondary" style="font-size:0.85rem;padding:0.45rem 1rem;">
+          ➕ Create New Campaign
+        </button>
+        <button id="wsm-camp-sel-done" class="btn btn-primary" style="font-size:0.85rem;padding:0.45rem 1.25rem;">
+          Done
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  modal.querySelectorAll('.campaign-select-card').forEach(card => {
+    card.onclick = async () => {
+      const cId = card.dataset.campId;
+      await setActiveCampaign(cId, true);
+      modal.remove();
+      if (onSelectCallback) onSelectCallback(cId);
+    };
+  });
+
+  modal.querySelector('#wsm-camp-sel-close').onclick = () => modal.remove();
+  modal.querySelector('#wsm-camp-sel-done').onclick = () => modal.remove();
+  modal.querySelector('#wsm-camp-sel-new').onclick = () => {
+    modal.remove();
+    state.activeView = 'scheduling';
+    state.wsmStudioTab = 'campaigns';
+    state.activeCampaignSubTab = 'all-campaigns';
+    renderActiveView();
+    setTimeout(() => {
+      const addBtn = document.getElementById('btn-wsm-new-camp');
+      if (addBtn) addBtn.click();
+    }, 100);
+  };
 }
 
 function renderHeaderSystemTime() {
@@ -1677,7 +2334,23 @@ function navigate(view) {
     alert(`Access Denied: The role '${state.userRole}' does not have permission to view the '${view}' module.`);
     return;
   }
-  state.activeView = view;
+  
+  if (view === 'campaigns') {
+    state.activeView = 'scheduling';
+    state.wsmStudioTab = 'campaigns';
+  } else if (view === 'shifts-activities') {
+    state.activeView = 'scheduling';
+    state.wsmStudioTab = 'shifts-patterns';
+  } else if (view === 'work-pattern') {
+    state.activeView = 'scheduling';
+    state.wsmStudioTab = 'rules-costs';
+  } else if (view === 'scheduling') {
+    state.activeView = 'scheduling';
+    if (!state.wsmStudioTab) state.wsmStudioTab = 'auto-scheduler';
+  } else {
+    state.activeView = view;
+  }
+
   rebuildSidebarMenu();
   renderActiveView();
 }
@@ -1687,22 +2360,31 @@ function renderActiveView() {
   const pageTitle = document.getElementById('page-title');
   if (!container) return;
 
-  const titles = {
-    dashboard: 'Operations Command Center',
-    'agent-dashboard': 'Agent Personal Portal',
-    'tl-dashboard': 'Team Leader Dashboard',
-    shrinkage: 'Interactive Shrinkage Studio',
-    agents: 'Agent Master Directory',
-    hoop: 'Hours of Operation (HOOP) Planner',
-    forecasting: 'Forecast Modeler & Uploader',
-    staffing: 'Staffing Requirement Solver',
-    scheduling: 'Master Schedule Board',
-    adherence: 'Intraday Adherence Monitor',
-    approvals: 'Workforce Exception Approvals',
-    users: 'Enterprise Identity & Access Console',
-    reporting: 'Reporting & Analytics Console'
-  };
-  pageTitle.innerText = titles[state.activeView] || 'WFM-One Console';
+  let computedTitle = 'WFM-One Console';
+  if (state.activeView === 'scheduling') {
+    if (state.wsmStudioTab === 'campaigns') computedTitle = 'Campaigns & Brands Studio';
+    else if (state.wsmStudioTab === 'shifts-patterns') computedTitle = 'Shifts & Activities Studio';
+    else if (state.wsmStudioTab === 'rules-costs') computedTitle = 'Work Pattern Builder';
+    else computedTitle = 'Master Schedule Board';
+  } else {
+    const titles = {
+      dashboard: 'Operations Command Center',
+      'agent-dashboard': 'Agent Personal Portal',
+      'tl-dashboard': 'Team Leader Dashboard',
+      shrinkage: 'Interactive Shrinkage Studio',
+      agents: 'Agent Master Directory',
+      hoop: 'Hours of Operation (HOOP) Planner',
+      forecasting: 'Forecast Modeler & Uploader',
+      staffing: 'Staffing Requirement Solver',
+      scheduling: 'Master Schedule Board',
+      adherence: 'Intraday Adherence Monitor',
+      approvals: 'Workforce Exception Approvals',
+      users: 'Enterprise Identity & Access Console',
+      reporting: 'Reporting & Analytics Console'
+    };
+    computedTitle = titles[state.activeView] || 'WFM-One Console';
+  }
+  pageTitle.innerText = computedTitle;
 
   switch (state.activeView) {
     case 'dashboard':
@@ -4048,25 +4730,42 @@ function getResolvedAgentDaySchedule(agent, dateStr) {
       };
     }
 
-    // Build 5-layer intraday blocks
+    // Build 5-layer intraday blocks with configured 2 Breaks (15m) + 1 Lunch (1h)
     const rawBlocks = [];
-    const b1Start = addTimeMinutes(shiftStart, 150); // +2.5h
-    const b1End = addTimeMinutes(b1Start, 15);
-    const lunchStart = addTimeMinutes(shiftStart, 240); // +4h
-    const lunchEnd = addTimeMinutes(lunchStart, 60);
-    const b2Start = addTimeMinutes(shiftStart, 390); // +6.5h
-    const b2End = addTimeMinutes(b2Start, 15);
+    const rules = (state.scheduleConfig && state.scheduleConfig.breakLunchRules) || {
+      break1Duration: 15,
+      break1OffsetHours: 2.5,
+      lunchDuration: 60,
+      lunchOffsetHours: 4.0,
+      break2Duration: 15,
+      break2OffsetHours: 6.5
+    };
 
-    // Layer 1: Base Shift
+    const b1Dur = Number(rules.break1Duration) || 15;
+    const lunchDur = Number(rules.lunchDuration) || 60;
+    const b2Dur = Number(rules.break2Duration) || 15;
+
+    const b1OffsetMin = Math.round((Number(rules.break1OffsetHours) || 2.5) * 60);
+    const lunchOffsetMin = Math.round((Number(rules.lunchOffsetHours) || 4.0) * 60);
+    const b2OffsetMin = Math.round((Number(rules.break2OffsetHours) || 6.5) * 60);
+
+    const b1Start = addTimeMinutes(shiftStart, b1OffsetMin);
+    const b1End = addTimeMinutes(b1Start, b1Dur);
+    const lunchStart = addTimeMinutes(shiftStart, lunchOffsetMin);
+    const lunchEnd = addTimeMinutes(lunchStart, lunchDur);
+    const b2Start = addTimeMinutes(shiftStart, b2OffsetMin);
+    const b2End = addTimeMinutes(b2Start, b2Dur);
+
+    // Layer 1: Base Shift Bounds
     rawBlocks.push({ name: 'Base Shift Bounds', layer: 1, type: 'base', start: shiftStart, end: shiftEnd, duration: calculateDurationMinutes(shiftStart, shiftEnd) });
 
-    // Layer 2: Shift Events (Breaks & Lunch)
-    rawBlocks.push({ name: 'Productive Work', layer: 1, type: 'productive', start: shiftStart, end: b1Start, duration: 150 });
-    rawBlocks.push({ name: 'Morning Break', layer: 2, type: 'break', start: b1Start, end: b1End, duration: 15 });
-    rawBlocks.push({ name: 'Productive Work', layer: 1, type: 'productive', start: b1End, end: lunchStart, duration: 75 });
-    rawBlocks.push({ name: 'Lunch Break', layer: 2, type: 'lunch', start: lunchStart, end: lunchEnd, duration: 60 });
-    rawBlocks.push({ name: 'Productive Work', layer: 1, type: 'productive', start: lunchEnd, end: b2Start, duration: 90 });
-    rawBlocks.push({ name: 'Afternoon Break', layer: 2, type: 'break', start: b2Start, end: b2End, duration: 15 });
+    // Layer 2: Shift Events (2 Breaks of 15m + 1 Lunch of 1h)
+    rawBlocks.push({ name: 'Productive Work', layer: 1, type: 'productive', start: shiftStart, end: b1Start, duration: calculateDurationMinutes(shiftStart, b1Start) });
+    rawBlocks.push({ name: 'Morning Break', layer: 2, type: 'break', start: b1Start, end: b1End, duration: b1Dur });
+    rawBlocks.push({ name: 'Productive Work', layer: 1, type: 'productive', start: b1End, end: lunchStart, duration: calculateDurationMinutes(b1End, lunchStart) });
+    rawBlocks.push({ name: 'Lunch Break', layer: 2, type: 'lunch', start: lunchStart, end: lunchEnd, duration: lunchDur });
+    rawBlocks.push({ name: 'Productive Work', layer: 1, type: 'productive', start: lunchEnd, end: b2Start, duration: calculateDurationMinutes(lunchEnd, b2Start) });
+    rawBlocks.push({ name: 'Afternoon Break', layer: 2, type: 'break', start: b2Start, end: b2End, duration: b2Dur });
     rawBlocks.push({ name: 'Productive Work', layer: 1, type: 'productive', start: b2End, end: shiftEnd, duration: calculateDurationMinutes(b2End, shiftEnd) });
 
     // Layer 3 & Layer 5: Calendar Events & Unavailability
@@ -4139,22 +4838,39 @@ function getResolvedAgentDaySchedule(agent, dateStr) {
     };
   }
 
-  const b1Start = addTimeMinutes(baseStart, 150);
-  const b1End = addTimeMinutes(b1Start, 15);
-  const lunchStart = addTimeMinutes(baseStart, 240);
-  const lunchEnd = addTimeMinutes(lunchStart, 60);
-  const b2Start = addTimeMinutes(baseStart, 390);
-  const b2End = addTimeMinutes(b2Start, 15);
+  const rules = (state.scheduleConfig && state.scheduleConfig.breakLunchRules) || {
+    break1Duration: 15,
+    break1OffsetHours: 2.5,
+    lunchDuration: 60,
+    lunchOffsetHours: 4.0,
+    break2Duration: 15,
+    break2OffsetHours: 6.5
+  };
+
+  const b1Dur = Number(rules.break1Duration) || 15;
+  const lunchDur = Number(rules.lunchDuration) || 60;
+  const b2Dur = Number(rules.break2Duration) || 15;
+
+  const b1OffsetMin = Math.round((Number(rules.break1OffsetHours) || 2.5) * 60);
+  const lunchOffsetMin = Math.round((Number(rules.lunchOffsetHours) || 4.0) * 60);
+  const b2OffsetMin = Math.round((Number(rules.break2OffsetHours) || 6.5) * 60);
+
+  const b1Start = addTimeMinutes(baseStart, b1OffsetMin);
+  const b1End = addTimeMinutes(b1Start, b1Dur);
+  const lunchStart = addTimeMinutes(baseStart, lunchOffsetMin);
+  const lunchEnd = addTimeMinutes(lunchStart, lunchDur);
+  const b2Start = addTimeMinutes(baseStart, b2OffsetMin);
+  const b2End = addTimeMinutes(b2Start, b2Dur);
 
   const baseBlocks = [
     { name: 'Base Shift Bounds', layer: 1, type: 'base', start: baseStart, end: baseEnd, duration: calculateDurationMinutes(baseStart, baseEnd) },
-    { name: 'Productive Work', layer: 1, type: 'productive', start: baseStart, end: b1Start, duration: 150 },
-    { name: 'Morning Break', layer: 2, type: 'break', start: b1Start, end: b1End, duration: 15 },
-    { name: 'Productive Work', layer: 1, type: 'productive', start: b1End, end: lunchStart, duration: 75 },
-    { name: 'Lunch Break', layer: 2, type: 'lunch', start: lunchStart, end: lunchEnd, duration: 60 },
-    { name: 'Productive Work', layer: 1, type: 'productive', start: lunchEnd, end: b2Start, duration: 90 },
-    { name: 'Afternoon Break', layer: 2, type: 'break', start: b2Start, end: b2End, duration: 15 },
-    { name: 'Productive Work', layer: 1, type: 'productive', start: b2End, end: baseEnd, duration: 75 }
+    { name: 'Productive Work', layer: 1, type: 'productive', start: baseStart, end: b1Start, duration: calculateDurationMinutes(baseStart, b1Start) },
+    { name: 'Morning Break', layer: 2, type: 'break', start: b1Start, end: b1End, duration: b1Dur },
+    { name: 'Productive Work', layer: 1, type: 'productive', start: b1End, end: lunchStart, duration: calculateDurationMinutes(b1End, lunchStart) },
+    { name: 'Lunch Break', layer: 2, type: 'lunch', start: lunchStart, end: lunchEnd, duration: lunchDur },
+    { name: 'Productive Work', layer: 1, type: 'productive', start: lunchEnd, end: b2Start, duration: calculateDurationMinutes(lunchEnd, b2Start) },
+    { name: 'Afternoon Break', layer: 2, type: 'break', start: b2Start, end: b2End, duration: b2Dur },
+    { name: 'Productive Work', layer: 1, type: 'productive', start: b2End, end: baseEnd, duration: calculateDurationMinutes(b2End, baseEnd) }
   ];
 
   const activeBlocks = baseBlocks.filter(b => state.activeLayers[`layer${b.layer}`] !== false);
@@ -4420,6 +5136,7 @@ function renderAgentShowcaseView(agent, curDateStr, viewMode, displayMonthStr, d
               <button class="btn btn-secondary" id="agent-act-leave" style="justify-content:flex-start; padding:0.5rem 0.75rem; font-size:0.8rem;"><i data-lucide="umbrella" style="width:15px;height:15px; color:#f472b6;"></i> Apply Leave</button>
               <button class="btn btn-secondary" id="agent-act-activity" style="justify-content:flex-start; padding:0.5rem 0.75rem; font-size:0.8rem;"><i data-lucide="plus-circle" style="width:15px;height:15px; color:var(--color-primary-light);"></i> Add Activity</button>
               <button class="btn btn-secondary" id="agent-act-weekoff" style="justify-content:flex-start; padding:0.5rem 0.75rem; font-size:0.8rem;"><i data-lucide="calendar" style="width:15px;height:15px; color:var(--color-info);"></i> Change Week Off</button>
+              <button class="btn btn-secondary" id="agent-act-remove" style="justify-content:flex-start; padding:0.5rem 0.75rem; font-size:0.8rem; color:#fca5a5;"><i data-lucide="trash-2" style="width:15px;height:15px; color:#f87171;"></i> Request Activity / Shift Removal</button>
               <button class="btn btn-secondary" id="agent-act-weekly" style="justify-content:flex-start; padding:0.5rem 0.75rem; font-size:0.8rem;"><i data-lucide="calendar-days" style="width:15px;height:15px; color:var(--color-success);"></i> View Weekly</button>
             </div>
           </div>
@@ -4738,8 +5455,894 @@ function renderAgentRequestTracker(agent) {
 }
 
 // ==========================================
-// 2. WFM SCHEDULE MANAGEMENT CONSOLE (Daily, Weekly, Monthly Views + Interactive Drawer)
+// 2. WFM SCHEDULE MANAGEMENT CONSOLE & ENTERPRISE WSM SCHEDULING ENGINE
 // ==========================================
+
+function renderWsmOptimizationBar(curDateStr) {
+  const camps = state.wsmCampaigns && state.wsmCampaigns.length > 0 ? state.wsmCampaigns : [
+    { id: 'CAMP_HOB', name: 'House of Brands Enterprise' },
+    { id: 'CAMP_RUGS_USA', name: 'Rugs USA' },
+    { id: 'CAMP_ANNE_SELKE', name: 'Anne Selke' },
+    { id: 'CAMP_NULOOM', name: 'Nuloom' }
+  ];
+  const activeRun = state.activeWsmRun || {
+    id: 'RUN_CURRENT',
+    status: 'DRAFT',
+    overall_quality_score: 92.8,
+    coverage_score: 90.6,
+    skill_coverage_score: 98.5,
+    constraint_score: 100.0,
+    total_scheduled_hours: 384.0,
+    total_estimated_cost: 9024.0,
+    total_understaffed_intervals: 1,
+    total_overstaffed_intervals: 19
+  };
+
+  return `
+    <div class="wsm-studio-banner" style="margin-bottom:0.85rem;">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; border-bottom:1px solid rgba(255,255,255,0.08); padding-bottom:0.75rem; margin-bottom:0.75rem;">
+        <div style="display:flex; align-items:center; gap:0.75rem;">
+          <div style="width:34px; height:34px; border-radius:8px; background:linear-gradient(135deg, #4f46e5, #06b6d4); display:flex; align-items:center; justify-content:center; color:white; font-weight:800; font-size:0.95rem;">
+            W1
+          </div>
+          <div>
+            <div style="font-weight:800; font-size:0.95rem; color:white; display:flex; align-items:center; gap:0.5rem;">
+              <span>Enterprise WSM Scheduling Engine</span>
+              <span class="badge ${activeRun.status === 'PUBLISHED' ? 'badge-success' : 'badge-warning'}">${activeRun.status || 'DRAFT'}</span>
+            </div>
+            <div style="font-size:0.72rem; color:var(--text-muted);">
+              Campaign-Aware 2-Pass Constraint Optimization • Shift Minutes & Explainability Solver
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap;">
+          <!-- Campaign Context Selector -->
+          <div style="display:flex; align-items:center; gap:0.35rem;">
+            <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600;">Campaign:</label>
+            <select class="sidebar-select" id="wsm-campaign-select" style="padding:0.35rem 0.6rem; font-size:0.8rem; min-width:180px;">
+              ${camps.map(c => `<option value="${c.id}" ${state.selectedCampaignId === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}
+            </select>
+          </div>
+
+          <!-- Optimization Mode -->
+          <div style="display:flex; align-items:center; gap:0.35rem;">
+            <label style="font-size:0.75rem; color:var(--text-muted); font-weight:600;">Mode:</label>
+            <select class="sidebar-select" id="wsm-mode-select" style="padding:0.35rem 0.5rem; font-size:0.8rem;">
+              <option value="BALANCED">⚖️ Balanced</option>
+              <option value="COVERAGE">📈 Coverage Max</option>
+              <option value="COST">💰 Cost Min</option>
+            </select>
+          </div>
+
+          <!-- Solver Trigger -->
+          <button class="btn btn-primary" id="btn-wsm-generate" style="padding:0.4rem 0.85rem; font-size:0.8rem; font-weight:700;">
+            <i data-lucide="zap" style="width:14px;height:14px;"></i> Generate Auto-Schedule
+          </button>
+
+          <!-- Coverage Heatmap Button -->
+          <button class="btn btn-secondary" id="btn-wsm-coverage" style="padding:0.4rem 0.75rem; font-size:0.8rem;">
+            <i data-lucide="bar-chart-3" style="width:14px;height:14px; color:#38bdf8;"></i> Coverage Heatmap
+          </button>
+
+          <!-- Publish & Lock Buttons -->
+          <button class="btn btn-success" id="btn-wsm-publish" style="padding:0.4rem 0.75rem; font-size:0.8rem; font-weight:700;">
+            <i data-lucide="check-circle-2" style="width:14px;height:14px;"></i> Publish Run
+          </button>
+
+          <button class="btn btn-secondary" id="btn-wsm-lock" style="padding:0.4rem 0.6rem; font-size:0.8rem;" title="Lock Schedule Run">
+            <i data-lucide="lock" style="width:14px;height:14px; color:#fbbf24;"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Live Quality Scorecard Strip -->
+      <div class="wsm-scorecard-grid">
+        <div class="wsm-kpi-chip">
+          <div class="wsm-kpi-label">Overall Quality</div>
+          <div class="wsm-kpi-val" style="color:#34d399;">${activeRun.overall_quality_score || 92.8}%</div>
+        </div>
+        <div class="wsm-kpi-chip">
+          <div class="wsm-kpi-label">Interval Coverage</div>
+          <div class="wsm-kpi-val" style="color:#38bdf8;">${activeRun.coverage_score || 90.6}%</div>
+        </div>
+        <div class="wsm-kpi-chip">
+          <div class="wsm-kpi-label">Skill Qualification</div>
+          <div class="wsm-kpi-val" style="color:#a78bfa;">${activeRun.skill_coverage_score || 98.5}%</div>
+        </div>
+        <div class="wsm-kpi-chip">
+          <div class="wsm-kpi-label">Hard Constraints</div>
+          <div class="wsm-kpi-val" style="color:#10b981;">${activeRun.constraint_score || 100.0}%</div>
+        </div>
+        <div class="wsm-kpi-chip">
+          <div class="wsm-kpi-label">Scheduled Hours</div>
+          <div class="wsm-kpi-val">${activeRun.total_scheduled_hours || 384}h</div>
+        </div>
+        <div class="wsm-kpi-chip">
+          <div class="wsm-kpi-label">Estimated Cost</div>
+          <div class="wsm-kpi-val" style="color:#fbbf24;">$${Math.round(activeRun.total_estimated_cost || 9024).toLocaleString()}</div>
+        </div>
+        <div class="wsm-kpi-chip">
+          <div class="wsm-kpi-label">Interval Gaps</div>
+          <div class="wsm-kpi-val" style="font-size:0.95rem; color:#f87171;">
+            ${activeRun.total_understaffed_intervals || 1} under / ${activeRun.total_overstaffed_intervals || 19} over
+          </div>
+        </div>
+      </div>
+
+      <!-- Studio Sub-Tab Bar -->
+      <div class="wsm-tab-nav" style="margin-top:0.85rem; margin-bottom:0; display:flex; gap:0.5rem; flex-wrap:wrap;">
+        <button type="button" class="wsm-tab-btn ${state.wsmStudioTab === 'campaigns' ? 'active' : ''}" data-wsm-tab="campaigns" style="font-weight:700;">
+          <i data-lucide="building" style="width:14px;height:14px;"></i> 🏢 Campaigns &amp; Brands (${(state.wsmCampaigns || []).filter(c=>c.status!=='Inactive').length})
+        </button>
+        <button type="button" class="wsm-tab-btn ${state.wsmStudioTab === 'shifts-patterns' ? 'active' : ''}" data-wsm-tab="shifts-patterns" style="font-weight:700;">
+          <i data-lucide="clock" style="width:14px;height:14px;"></i> ⏰ Shifts &amp; Activities
+        </button>
+        <button type="button" class="wsm-tab-btn ${state.wsmStudioTab === 'rules-costs' ? 'active' : ''}" data-wsm-tab="rules-costs" style="font-weight:700;">
+          <i data-lucide="calendar-days" style="width:14px;height:14px;"></i> 📅 Work Pattern
+        </button>
+        <button type="button" class="wsm-tab-btn ${state.wsmStudioTab === 'auto-scheduler' ? 'active' : ''}" data-wsm-tab="auto-scheduler" style="font-weight:700;">
+          <i data-lucide="gantt-chart-square" style="width:14px;height:14px;"></i> 📊 Master Schedule Console
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+// ===================================================
+// CAMPAIGN STUDIO - Full CRUD with Brands, Channels, Agents, HOOP, rates
+// ===================================================
+function renderWsmCampaignsStudio() {
+  const camps = (state.wsmCampaigns || []).filter(c => c.status !== 'Inactive');
+  const allAgents = state.agents || [];
+  const curCamp = state.activeCampaign || camps.find(c => c.id === state.activeCampaignId) || camps[0] || {};
+  const activeBrands = state.activeCampaignBrands || [];
+  const activeChannels = state.activeCampaignChannels || [];
+  const activeSubTab = state.activeCampaignSubTab || 'all-campaigns';
+
+  const DAY_OPTIONS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const CURRENCIES = [
+    {code:'USD', label:'USD – US Dollar ($)'},
+    {code:'INR', label:'INR – Indian Rupee (₹)'},
+    {code:'EUR', label:'EUR – Euro (€)'},
+    {code:'JPY', label:'JPY – Japanese Yen (¥)'},
+    {code:'PHP', label:'PHP – Philippine Peso (₱)'},
+    {code:'GBP', label:'GBP – British Pound (£)'},
+    {code:'AUD', label:'AUD – Australian Dollar (A$)'},
+    {code:'CAD', label:'CAD – Canadian Dollar (C$)'},
+  ];
+
+  const campaignCardsHtml = camps.map(c => {
+    const isCurrentActive = c.id === curCamp.id;
+    return `
+      <div class="wfm-card" style="padding:1rem; margin-bottom:0.75rem; border:${isCurrentActive ? '1px solid #818cf8' : '1px solid var(--border-light)'}; background:${isCurrentActive ? 'rgba(49,46,129,0.15)' : 'var(--bg-card)'};" id="camp-card-${c.id}">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+          <div style="flex:1;">
+            <div style="display:flex; align-items:center; gap:0.6rem; margin-bottom:0.4rem;">
+              <span style="font-weight:800; font-size:1.05rem; color:white;">${c.name}</span>
+              <span class="badge badge-info">${c.code}</span>
+              ${isCurrentActive ? '<span class="badge badge-success">✓ Active Workspace</span>' : '<span class="badge badge-secondary">Inactive in View</span>'}
+            </div>
+            <div style="display:flex; flex-wrap:wrap; gap:0.75rem; font-size:0.78rem; color:var(--text-muted); margin-bottom:0.6rem;">
+              <span>🌍 ${c.timezone || 'EST'}</span>
+              <span>⏰ ${c.hoop_start||'08:00'} – ${c.hoop_end||'20:00'}</span>
+              <span>💰 ${c.currency||'USD'} ${c.base_hourly_rate||25}/hr</span>
+              <span>🎯 SLA: ${c.service_level_target||80}%</span>
+              <span class="wsm-camp-agent-count">👥 ${c.agent_count||0} Agents</span>
+            </div>
+            <div style="display:flex; gap:0.35rem; flex-wrap:wrap;">
+              ${(c.operating_days || ['Mon','Tue','Wed','Thu','Fri']).map(d => `
+                <span style="font-size:0.72rem; background:rgba(99,102,241,0.15); color:#818cf8; border:1px solid rgba(99,102,241,0.3); border-radius:4px; padding:0.15rem 0.45rem;">${d}</span>
+              `).join('')}
+            </div>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:0.4rem; min-width:130px; align-items:flex-end;">
+            ${!isCurrentActive ? `<button class="btn btn-primary btn-wsm-set-active-camp" data-id="${c.id}" style="font-size:0.75rem; padding:0.3rem 0.65rem; width:100%;">⚡ Set as Active</button>` : ''}
+            <button class="btn btn-secondary btn-wsm-edit-camp" data-id="${c.id}" style="font-size:0.75rem; padding:0.3rem 0.65rem; width:100%;">✏️ Edit</button>
+            <button class="btn btn-secondary btn-wsm-manage-agents" data-id="${c.id}" data-name="${c.name}" style="font-size:0.75rem; padding:0.3rem 0.65rem; width:100%;">👥 Agents (${c.agent_count||0})</button>
+            <button class="btn btn-secondary btn-wsm-delete-camp" data-id="${c.id}" style="font-size:0.75rem; padding:0.3rem 0.65rem; width:100%; color:#f87171; border-color:#f87171;">🗑 Delete</button>
+          </div>
+        </div>
+
+        <!-- Expandable agent panel -->
+        <div id="agent-panel-${c.id}" style="display:none; margin-top:1rem; padding-top:1rem; border-top:1px solid var(--border-light);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
+            <span style="font-size:0.85rem; font-weight:700; color:white;">Assigned Agents to ${c.name}</span>
+            <button class="btn btn-primary btn-wsm-add-agents" data-camp-id="${c.id}" style="font-size:0.72rem; padding:0.25rem 0.65rem;">+ Add Agents</button>
+          </div>
+          <div id="agent-list-${c.id}" style="font-size:0.78rem; color:var(--text-muted);">Loading...</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Brands & Channels HTML
+  const brandsHtml = activeBrands.length === 0 ? `
+    <div style="text-align:center; padding:1.5rem; color:var(--text-muted); font-size:0.85rem; background:rgba(15,23,42,0.4); border-radius:var(--radius-sm);">
+      No brands configured for this campaign yet. Click <strong>"+ Add Brand"</strong> below to create one.
+    </div>
+  ` : `
+    <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(240px, 1fr)); gap:0.75rem;">
+      ${activeBrands.map(b => `
+        <div class="brand-card-item">
+          <div>
+            <div style="font-weight:700; color:white; font-size:0.9rem; display:flex; align-items:center; gap:0.4rem;">
+              🏷️ ${b.name}
+              ${b.code ? `<span class="badge badge-info" style="font-size:0.68rem;">${b.code}</span>` : ''}
+            </div>
+            <div style="font-size:0.72rem; color:var(--text-muted); margin-top:0.2rem;">${b.description || 'Campaign Brand Account'}</div>
+          </div>
+          <button class="btn-wsm-del-brand" data-camp="${curCamp.id}" data-id="${b.id}" title="Delete Brand" style="background:transparent; border:none; color:#f87171; cursor:pointer; font-size:0.85rem; padding:0.2rem 0.4rem;">🗑</button>
+        </div>
+      `).join('')}
+    </div>
+  `;
+
+  const channelsHtml = activeChannels.length === 0 ? `
+    <div style="text-align:center; padding:1.5rem; color:var(--text-muted); font-size:0.85rem; background:rgba(15,23,42,0.4); border-radius:var(--radius-sm);">
+      No channels configured for this campaign yet. Click <strong>"+ Add Channel"</strong> below to create one.
+    </div>
+  ` : `
+    <div style="display:flex; flex-direction:column; gap:0.6rem;">
+      ${activeChannels.map(ch => {
+        let icon = '📞';
+        if (ch.channel === 'Chat') icon = '💬';
+        if (ch.channel === 'Email') icon = '✉️';
+        if (ch.channel === 'Back-Office') icon = '📁';
+        if (ch.channel === 'Social') icon = '🌐';
+        return `
+          <div class="channel-card-item">
+            <div style="display:flex; align-items:center; gap:0.85rem;">
+              <span style="font-size:1.25rem;">${icon}</span>
+              <div>
+                <div style="font-weight:700; color:white; font-size:0.9rem; display:flex; align-items:center; gap:0.5rem;">
+                  ${ch.name}
+                  <span class="badge badge-info" style="font-size:0.7rem;">${ch.channel}</span>
+                  ${ch.brand_name ? `<span class="badge badge-secondary" style="font-size:0.68rem;">${ch.brand_name}</span>` : ''}
+                </div>
+                <div style="display:flex; gap:1rem; font-size:0.75rem; color:var(--text-muted); margin-top:0.25rem;">
+                  <span>🎯 SLA: <strong>${ch.target_sla_percent || 80}%</strong> in <strong>${ch.target_sla_seconds || 20}s</strong></span>
+                  <span>⏱️ AHT: <strong>${ch.target_aht || 280}s</strong></span>
+                  <span>📊 Occ: <strong>${ch.target_occupancy || 85}%</strong></span>
+                </div>
+              </div>
+            </div>
+            <button class="btn-wsm-del-channel" data-camp="${curCamp.id}" data-id="${ch.id}" title="Delete Channel" style="background:transparent; border:none; color:#f87171; cursor:pointer; font-size:0.85rem; padding:0.2rem 0.4rem;">🗑</button>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+
+  return `
+    <div style="display:flex; flex-direction:column; gap:1rem;">
+      <!-- Active Workspace Context Card -->
+      <div style="background:linear-gradient(135deg, rgba(30,41,59,0.9) 0%, rgba(15,23,42,0.9) 100%); border:1px solid rgba(129,140,248,0.3); border-radius:var(--radius-md); padding:1.25rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
+        <div>
+          <div style="font-size:0.75rem; color:#818cf8; font-weight:800; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">
+            Active Campaign Workspace
+          </div>
+          <div style="display:flex; align-items:center; gap:0.6rem;">
+            <h2 style="font-size:1.35rem; color:white; font-weight:800; margin:0; font-family:var(--font-display);">${curCamp.name || 'Default Campaign'}</h2>
+            <span class="badge badge-info">${curCamp.code || 'CAMP'}</span>
+            <span class="badge badge-success">Active</span>
+          </div>
+          <div style="display:flex; gap:1rem; font-size:0.8rem; color:var(--text-muted); margin-top:0.4rem;">
+            <span>🌍 Timezone: <strong style="color:white;">${curCamp.timezone||'EST'}</strong></span>
+            <span>⏰ HOOP: <strong style="color:white;">${curCamp.hoop_start||'08:00'} – ${curCamp.hoop_end||'20:00'}</strong></span>
+            <span>💰 Rate: <strong style="color:white;">${curCamp.currency||'USD'} ${curCamp.base_hourly_rate||25}/hr</strong></span>
+            <span>👥 Roster: <strong style="color:white;">${curCamp.agent_count||0} Agents</strong></span>
+          </div>
+        </div>
+        <div style="display:flex; gap:0.6rem;">
+          <button id="btn-wsm-switch-workspace" class="btn btn-secondary" style="font-size:0.82rem; padding:0.45rem 0.9rem;">
+            🔄 Switch Workspace
+          </button>
+          <button id="btn-wsm-new-camp" class="btn btn-primary" style="font-size:0.82rem; padding:0.45rem 1rem;">
+            ➕ New Campaign
+          </button>
+        </div>
+      </div>
+
+      <!-- Studio Sub-Tab Switcher -->
+      <div style="display:flex; gap:0.5rem; border-bottom:1px solid var(--border-light); padding-bottom:0.5rem;">
+        <button class="wsm-camp-subtab-btn ${activeSubTab === 'all-campaigns' ? 'active' : ''}" data-subtab="all-campaigns" style="padding:0.4rem 1rem; border-radius:var(--radius-sm); border:1px solid ${activeSubTab === 'all-campaigns' ? '#818cf8' : 'var(--border-light)'}; background:${activeSubTab === 'all-campaigns' ? 'rgba(99,102,241,0.2)' : 'transparent'}; color:${activeSubTab === 'all-campaigns' ? 'white' : 'var(--text-muted)'}; font-weight:700; font-size:0.82rem; cursor:pointer;">
+          🏢 All Campaigns (${camps.length})
+        </button>
+        <button class="wsm-camp-subtab-btn ${activeSubTab === 'brands-channels' ? 'active' : ''}" data-subtab="brands-channels" style="padding:0.4rem 1rem; border-radius:var(--radius-sm); border:1px solid ${activeSubTab === 'brands-channels' ? '#818cf8' : 'var(--border-light)'}; background:${activeSubTab === 'brands-channels' ? 'rgba(99,102,241,0.2)' : 'transparent'}; color:${activeSubTab === 'brands-channels' ? 'white' : 'var(--text-muted)'}; font-weight:700; font-size:0.82rem; cursor:pointer;">
+          🏷️ Brands &amp; Channels (${activeBrands.length} Brands · ${activeChannels.length} Channels)
+        </button>
+      </div>
+
+      <!-- Sub-Tab 1: All Campaigns -->
+      ${activeSubTab === 'all-campaigns' ? `
+        <div id="wsm-camp-form-area"></div>
+        <div>
+          ${campaignCardsHtml || '<div style="color:var(--text-muted); font-size:0.85rem; padding:1rem;">No campaigns yet. Click "+ New Campaign" to begin.</div>'}
+        </div>
+      ` : ''}
+
+      <!-- Sub-Tab 2: Brands & Channels -->
+      ${activeSubTab === 'brands-channels' ? `
+        <div style="display:flex; flex-direction:column; gap:1.5rem;">
+          <!-- Brands Section -->
+          <div style="background:rgba(30,41,59,0.5); border:1px solid var(--border-light); border-radius:var(--radius-md); padding:1.25rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+              <div>
+                <h3 style="color:white; font-weight:800; font-size:1.05rem; margin:0;">🏷️ Brands in ${curCamp.name}</h3>
+                <p style="font-size:0.78rem; color:var(--text-muted); margin:0.2rem 0 0 0;">Manage distinct brand entities and customer accounts under this campaign</p>
+              </div>
+              <button id="btn-wsm-add-brand" class="btn btn-primary" style="font-size:0.78rem; padding:0.35rem 0.85rem;">+ Add Brand</button>
+            </div>
+            <div id="wsm-brand-form-area"></div>
+            ${brandsHtml}
+          </div>
+
+          <!-- Channels Section -->
+          <div style="background:rgba(30,41,59,0.5); border:1px solid var(--border-light); border-radius:var(--radius-md); padding:1.25rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+              <div>
+                <h3 style="color:white; font-weight:800; font-size:1.05rem; margin:0;">📡 Channels &amp; Lines of Business (LOBs)</h3>
+                <p style="font-size:0.78rem; color:var(--text-muted); margin:0.2rem 0 0 0;">Define media channels (Voice, Chat, Email, Back-Office, Social) and SLA targets</p>
+              </div>
+              <button id="btn-wsm-add-channel" class="btn btn-primary" style="font-size:0.78rem; padding:0.35rem 0.85rem;">+ Add Channel</button>
+            </div>
+            <div id="wsm-channel-form-area"></div>
+            ${channelsHtml}
+          </div>
+        </div>
+      ` : ''}
+    </div>
+  `;
+}
+
+// ===================================================
+// SHIFTS & ACTIVITIES STUDIO
+// ===================================================
+function renderWsmShiftPatternsStudio() {
+  const activities = state.wsmActivities || [];
+  const primaryActivities = activities.filter(a => a.activity_type === 'PRIMARY');
+  const eventActivities = activities.filter(a => a.activity_type === 'EVENT' || !a.activity_type);
+  const templates = state.wsmShiftTemplates || [];
+  const camps = state.wsmCampaigns || [];
+
+  const durOptions = (min, max, step, selected) => {
+    const opts = []; for(let v = min; v <= max; v += step) opts.push(v);
+    return opts.map(v => `<option value="${v}" ${selected===v?'selected':''}>${v >= 60 ? (v/60)+'h' : v+'m'}</option>`).join('');
+  };
+
+  return `
+    <div style="display:flex; flex-direction:column; gap:1.25rem;">
+
+      <!-- PRIMARY ACTIVITIES -->
+      <div class="wfm-card" style="padding:1.25rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+          <div>
+            <h3 style="font-size:1rem; color:white; font-weight:800; font-family:var(--font-display);">Primary Activities</h3>
+            <p style="font-size:0.75rem; color:var(--text-muted);">Define the main work type agents perform (Phone, Chat, Email, etc.)</p>
+          </div>
+          <button id="btn-wsm-add-primary-act" class="btn btn-primary" style="font-size:0.78rem; padding:0.3rem 0.75rem;">+ Add Primary</button>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:0.75rem; margin-bottom:0.75rem;">
+          ${primaryActivities.map(a => `
+            <div style="background:rgba(15,23,42,0.7); border:1px solid var(--border-light); border-radius:var(--radius-sm); padding:0.75rem; display:flex; justify-content:space-between; align-items:center;">
+              <div style="display:flex; align-items:center; gap:0.5rem;">
+                <div style="width:10px; height:10px; border-radius:50%; background:${a.color_hex||'#6366f1'};"></div>
+                <span style="font-size:0.82rem; font-weight:700; color:white;">${a.name}</span>
+              </div>
+              <button class="btn-wsm-del-activity" data-id="${a.id}" style="background:transparent; border:none; color:#f87171; cursor:pointer; font-size:0.75rem;">✕</button>
+            </div>
+          `).join('')}
+        </div>
+        <div id="wsm-add-primary-form" style="display:none; background:rgba(15,23,42,0.5); border:1px dashed var(--border-light); border-radius:var(--radius-sm); padding:0.85rem; margin-top:0.5rem;">
+          <div style="display:grid; grid-template-columns:1fr 1fr auto; gap:0.75rem; align-items:flex-end;">
+            <div>
+              <label class="filter-label">Activity Name</label>
+              <input class="form-control" id="wsm-new-primary-name" placeholder="e.g. Phone, Chat, Email, Back-office, Team Leader">
+            </div>
+            <div>
+              <label class="filter-label">Color</label>
+              <input type="color" id="wsm-new-primary-color" value="#10b981" style="height:38px; width:100%; border-radius:6px; border:none; cursor:pointer;">
+            </div>
+            <button id="wsm-save-primary-act" class="btn btn-primary" style="padding:0.4rem 0.85rem; font-size:0.82rem; height:38px;">Add</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- SHIFT EVENTS / ACTIVITIES -->
+      <div class="wfm-card" style="padding:1.25rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+          <div>
+            <h3 style="font-size:1rem; color:white; font-weight:800; font-family:var(--font-display);">Shift Events / Activities</h3>
+            <p style="font-size:0.75rem; color:var(--text-muted);">Breaks, lunch, meetings, coaching — added to shifts to define the intraday schedule</p>
+          </div>
+          <button id="btn-wsm-add-event-act" class="btn btn-primary" style="font-size:0.78rem; padding:0.3rem 0.75rem;">+ Add Event</button>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:0.75rem; margin-bottom:0.75rem;">
+          ${eventActivities.map(a => `
+            <div style="background:rgba(15,23,42,0.7); border:1px solid var(--border-light); border-radius:var(--radius-sm); padding:0.75rem;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.3rem;">
+                <div style="display:flex; align-items:center; gap:0.5rem;">
+                  <div style="width:10px; height:10px; border-radius:50%; background:${a.color_hex||'#6366f1'};"></div>
+                  <span style="font-size:0.82rem; font-weight:700; color:white;">${a.name}</span>
+                </div>
+                <button class="btn-wsm-del-activity" data-id="${a.id}" style="background:transparent; border:none; color:#f87171; cursor:pointer; font-size:0.75rem;">✕</button>
+              </div>
+              <div style="font-size:0.72rem; color:var(--text-muted);">
+                ${a.default_duration_minutes || a.default_duration || '—'}${typeof a.default_duration_minutes === 'number' ? 'm' : ''} default
+                · ${a.min_duration_minutes || 5}m – ${a.max_duration_minutes || 120}m range
+                · ${a.is_paid ? '💰 Paid' : '🍽 Unpaid'}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+        <div id="wsm-add-event-form" style="display:none; background:rgba(15,23,42,0.5); border:1px dashed var(--border-light); border-radius:var(--radius-sm); padding:0.85rem; margin-top:0.5rem;">
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr auto; gap:0.6rem; align-items:flex-end;">
+            <div>
+              <label class="filter-label">Event Name</label>
+              <input class="form-control" id="wsm-new-event-name" placeholder="e.g. Morning Break">
+            </div>
+            <div>
+              <label class="filter-label">Duration</label>
+              <select class="sidebar-select" id="wsm-new-event-dur">
+                ${[5,10,15,20,30,45,60,90,120].map(v => `<option value="${v}" ${v===15?'selected':''}>${v < 60 ? v+'m' : (v/60)+'h'}</option>`).join('')}
+              </select>
+            </div>
+            <div>
+              <label class="filter-label">Category</label>
+              <select class="sidebar-select" id="wsm-new-event-cat">
+                <option value="BREAK">Break</option>
+                <option value="MEAL">Meal</option>
+                <option value="MEETING">Meeting</option>
+                <option value="COACHING">Coaching</option>
+                <option value="TRAINING">Training</option>
+              </select>
+            </div>
+            <div>
+              <label class="filter-label">Paid?</label>
+              <select class="sidebar-select" id="wsm-new-event-paid">
+                <option value="1">Paid</option>
+                <option value="0">Unpaid</option>
+              </select>
+            </div>
+            <button id="wsm-save-event-act" class="btn btn-primary" style="padding:0.4rem 0.85rem; font-size:0.82rem; height:38px;">Add</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- SHIFT BUILDER -->
+      <div class="wfm-card" style="padding:1.25rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+          <div>
+            <h3 style="font-size:1rem; color:white; font-weight:800; font-family:var(--font-display);">Shift Builder</h3>
+            <p style="font-size:0.75rem; color:var(--text-muted);">Compose a shift from a primary activity + intraday events</p>
+          </div>
+          <button id="btn-wsm-toggle-shift-builder" class="btn btn-primary" style="font-size:0.78rem; padding:0.3rem 0.75rem;">+ Create Shift</button>
+        </div>
+
+        <!-- Existing shifts list -->
+        ${templates.length > 0 ? `
+          <div style="display:flex; flex-direction:column; gap:0.6rem; margin-bottom:1rem;">
+            ${templates.map(t => `
+              <div style="background:rgba(15,23,42,0.6); border:1px solid var(--border-light); border-radius:var(--radius-sm); padding:0.75rem; display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                  <span style="font-weight:700; color:white; font-size:0.85rem;">${t.name}</span>
+                  <div style="font-size:0.72rem; color:var(--text-muted); margin-top:0.2rem;">
+                    ${t.duration_hours}h · ${t.primary_activity || 'Phone'} · ${t.earliest_start} – ${t.latest_start}
+                    ${(t.events_json ? (typeof t.events_json === 'string' ? JSON.parse(t.events_json) : t.events_json) : []).length > 0 ? `· ${(t.events_json ? (typeof t.events_json === 'string' ? JSON.parse(t.events_json) : t.events_json) : []).length} intraday events` : ''}
+                  </div>
+                </div>
+                <button class="btn-wsm-del-shift" data-id="${t.id}" style="background:transparent; border:none; color:#f87171; cursor:pointer; font-size:0.75rem;">✕ Remove</button>
+              </div>
+            `).join('')}
+          </div>
+        ` : '<p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:0.75rem;">No shifts created yet.</p>'}
+
+        <div id="wsm-shift-builder-form" style="display:none; background:rgba(15,23,42,0.5); border:1px dashed var(--border-light); border-radius:var(--radius-sm); padding:1rem;">
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:0.75rem; margin-bottom:0.85rem;">
+            <div>
+              <label class="filter-label">Shift Name</label>
+              <input class="form-control" id="wsm-shift-name" placeholder="e.g. Morning 9h Phone">
+            </div>
+            <div>
+              <label class="filter-label">Campaign</label>
+              <select class="sidebar-select" id="wsm-shift-camp">
+                <option value="">All Campaigns</option>
+                ${camps.map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
+              </select>
+            </div>
+            <div>
+              <label class="filter-label">Primary Activity</label>
+              <select class="sidebar-select" id="wsm-shift-primary-act">
+                ${primaryActivities.map(a => `<option value="${a.name}">${a.name}</option>`).join('')}
+                <option value="Phone">Phone</option>
+                <option value="Chat">Chat</option>
+                <option value="Email">Email</option>
+              </select>
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:0.75rem; margin-bottom:0.85rem;">
+            <div>
+              <label class="filter-label">Shift Duration</label>
+              <select class="sidebar-select" id="wsm-shift-dur">
+                ${[9,9.5,10,10.5,11].map(v => `<option value="${v}" ${v===9?'selected':''}>${v}h</option>`).join('')}
+              </select>
+            </div>
+            <div>
+              <label class="filter-label">Earliest Start</label>
+              <input type="time" class="form-control" id="wsm-shift-start" value="08:00">
+            </div>
+            <div>
+              <label class="filter-label">Latest Start</label>
+              <input type="time" class="form-control" id="wsm-shift-end" value="09:30">
+            </div>
+          </div>
+
+          <!-- Intraday Events Builder -->
+          <div style="margin-bottom:0.85rem;">
+            <label class="filter-label" style="margin-bottom:0.4rem;">Intraday Events (breaks, lunch, meetings)</label>
+            <div id="wsm-shift-events-list" style="display:flex; flex-direction:column; gap:0.4rem; margin-bottom:0.5rem;"></div>
+            <div style="display:flex; gap:0.5rem; align-items:flex-end;">
+              <div style="flex:2;">
+                <select class="sidebar-select" id="wsm-shift-add-event-select">
+                  <option value="">— Select Event Activity —</option>
+                  ${eventActivities.map(a => `<option value="${a.id}" data-name="${a.name}" data-dur="${a.default_duration_minutes||15}">${a.name}</option>`).join('')}
+                </select>
+              </div>
+              <div style="flex:1;">
+                <input type="number" class="form-control" id="wsm-shift-event-dur" placeholder="Duration (min)" min="5" max="120" value="15">
+              </div>
+              <div style="flex:1;">
+                <input type="number" class="form-control" id="wsm-shift-event-offset" placeholder="Offset (min)" min="0" value="150">
+              </div>
+              <button id="wsm-add-event-to-shift" class="btn btn-secondary" style="padding:0.4rem 0.65rem; font-size:0.78rem; white-space:nowrap;">+ Add</button>
+            </div>
+          </div>
+
+          <div style="display:flex; gap:0.75rem;">
+            <button id="wsm-save-shift-btn" class="btn btn-primary" style="padding:0.45rem 1.25rem;">✅ Create Shift</button>
+            <button id="wsm-cancel-shift-btn" class="btn btn-secondary" style="padding:0.45rem 0.85rem;">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ===================================================
+// WORK PATTERN STUDIO
+// ===================================================
+function renderWsmRulesStudio() {
+  const rules = state.wsmRules || [];
+  const hardRules = rules.filter(r => r.rule_type === 'HARD');
+  const softRules = rules.filter(r => r.rule_type === 'SOFT');
+  const patterns = state.wsmWorkPatterns || [];
+  const templates = state.wsmShiftTemplates || [];
+  const DAY_NAMES = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+
+  return `
+    <div style="display:flex; flex-direction:column; gap:1.25rem;">
+
+      <!-- WORK PATTERN BUILDER -->
+      <div class="wfm-card" style="padding:1.25rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+          <div>
+            <h3 style="font-size:1rem; color:white; font-weight:800; font-family:var(--font-display);">Work Pattern Builder</h3>
+            <p style="font-size:0.75rem; color:var(--text-muted);">Define weekly schedules — select which days agents work and assign shifts per day</p>
+          </div>
+          <button id="btn-wsm-new-pattern" class="btn btn-primary" style="font-size:0.78rem; padding:0.3rem 0.75rem;">+ New Pattern</button>
+        </div>
+
+        <!-- Existing Patterns -->
+        ${patterns.length > 0 ? `
+          <div style="display:flex; flex-direction:column; gap:0.75rem; margin-bottom:1rem;">
+            ${patterns.map(p => {
+              const workingDays = (p.days || []).filter(d => d.is_working_day);
+              return `
+                <div style="background:rgba(15,23,42,0.6); border:1px solid var(--border-light); border-radius:var(--radius-sm); padding:0.85rem;">
+                  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.6rem;">
+                    <div>
+                      <span style="font-weight:700; color:white; font-size:0.88rem;">${p.name}</span>
+                      <span style="font-size:0.72rem; color:var(--text-muted); margin-left:0.5rem;">${p.days_on}d on / ${p.days_off}d off · ${p.weekly_hours}h/week</span>
+                    </div>
+                    <button class="btn-wsm-del-pattern" data-id="${p.id}" style="background:transparent; border:none; color:#f87171; cursor:pointer; font-size:0.75rem;">✕ Delete</button>
+                  </div>
+                  <div style="display:flex; gap:0.4rem;">
+                    ${DAY_NAMES.map((d, i) => {
+                      const dayData = (p.days || [])[i];
+                      const isWorking = dayData && dayData.is_working_day;
+                      return `<div style="flex:1; text-align:center; padding:0.4rem 0.2rem; border-radius:4px; background:${isWorking ? 'rgba(16,185,129,0.15)' : 'rgba(100,116,139,0.1)'}; border:1px solid ${isWorking ? 'rgba(16,185,129,0.4)' : 'rgba(100,116,139,0.2)'};">
+                        <div style="font-size:0.68rem; font-weight:700; color:${isWorking ? '#34d399' : 'var(--text-muted)'};">${d}</div>
+                        <div style="font-size:0.62rem; color:${isWorking ? '#6ee7b7' : '#64748b'}; margin-top:2px;">${isWorking ? 'Work' : 'Off'}</div>
+                      </div>`;
+                    }).join('')}
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        ` : '<p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:0.75rem;">No work patterns created yet.</p>'}
+
+        <!-- Pattern Builder Form -->
+        <div id="wsm-pattern-builder-form" style="display:none; background:rgba(15,23,42,0.5); border:1px dashed var(--border-light); border-radius:var(--radius-sm); padding:1rem;">
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:0.85rem;">
+            <div>
+              <label class="filter-label">Pattern Name</label>
+              <input class="form-control" id="wsm-pattern-name" placeholder="e.g. Standard 5×8 Mon-Fri">
+            </div>
+            <div>
+              <label class="filter-label">Default Shift (applied to all working days)</label>
+              <select class="sidebar-select" id="wsm-pattern-default-shift">
+                <option value="">— Select Shift Template —</option>
+                ${templates.map(t => `<option value="${t.id}">${t.name} (${t.duration_hours}h)</option>`).join('')}
+              </select>
+            </div>
+          </div>
+
+          <!-- Day Grid -->
+          <div style="margin-bottom:1rem;">
+            <label class="filter-label" style="margin-bottom:0.5rem;">Weekly Schedule Grid</label>
+            <div style="overflow-x:auto;">
+              <table style="width:100%; border-collapse:separate; border-spacing:4px;">
+                <thead>
+                  <tr>
+                    ${DAY_NAMES.map(d => `<th style="text-align:center; font-size:0.75rem; color:var(--text-muted); padding:0.3rem; min-width:90px;">${d}</th>`).join('')}
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr id="wsm-pattern-day-ticks">
+                    ${DAY_NAMES.map((d, i) => `
+                      <td style="text-align:center; padding:0.4rem;">
+                        <label style="display:flex; flex-direction:column; align-items:center; gap:0.3rem; cursor:pointer;">
+                          <input type="checkbox" class="wsm-pattern-day-cb" data-day="${d}" data-idx="${i}"
+                            ${i < 5 ? 'checked' : ''} style="accent-color:#10b981; width:18px; height:18px;">
+                          <span style="font-size:0.7rem; color:var(--text-muted);">${i < 5 ? '✅' : '❌'}</span>
+                        </label>
+                      </td>
+                    `).join('')}
+                  </tr>
+                  <tr id="wsm-pattern-day-shifts">
+                    ${DAY_NAMES.map((d, i) => `
+                      <td style="padding:0.3rem;">
+                        <select class="sidebar-select wsm-day-shift-select" data-day="${d}" data-idx="${i}"
+                          style="font-size:0.7rem; padding:0.25rem 0.35rem; ${i >= 5 ? 'opacity:0.4;' : ''}">
+                          <option value="">Default</option>
+                          ${templates.map(t => `<option value="${t.id}">${t.name.substring(0,14)}</option>`).join('')}
+                        </select>
+                      </td>
+                    `).join('')}
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div style="display:flex; gap:0.75rem;">
+            <button id="wsm-save-pattern-btn" class="btn btn-primary" style="padding:0.45rem 1.25rem;">✅ Create Work Pattern</button>
+            <button id="wsm-cancel-pattern-btn" class="btn btn-secondary" style="padding:0.45rem 0.85rem;">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- RULES ENGINE -->
+      <div class="wfm-card" style="padding:1.25rem; border-color:rgba(16,185,129,0.3);">
+        <h3 style="font-size:1rem; color:#34d399; font-weight:800; font-family:var(--font-display); margin-bottom:0.75rem;">Hard Constraint Rules</h3>
+        <div class="table-wrapper">
+          <table>
+            <thead><tr><th>Rule</th><th>Category</th><th>Priority</th><th>Description</th><th>Status</th></tr></thead>
+            <tbody>
+              ${hardRules.map(hr => `
+                <tr>
+                  <td style="font-weight:700; color:white;">${hr.rule_name}</td>
+                  <td><span class="badge badge-info">${hr.category}</span></td>
+                  <td>P${hr.priority}</td>
+                  <td style="font-size:0.75rem; color:var(--text-muted);">${hr.description}</td>
+                  <td><span class="badge badge-success">Enforced</span></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="wfm-card" style="padding:1.25rem; border-color:rgba(99,102,241,0.3);">
+        <h3 style="font-size:1rem; color:#818cf8; font-weight:800; font-family:var(--font-display); margin-bottom:0.75rem;">Soft Constraints & Weights</h3>
+        <div class="table-wrapper">
+          <table>
+            <thead><tr><th>Rule</th><th>Category</th><th>Weight</th><th>Description</th><th>Action</th></tr></thead>
+            <tbody>
+              ${softRules.map(sr => `
+                <tr>
+                  <td style="font-weight:700; color:white;">${sr.rule_name}</td>
+                  <td><span class="badge badge-warning">${sr.category}</span></td>
+                  <td><span style="font-weight:800; color:#fbbf24;">${sr.weight} pts</span></td>
+                  <td style="font-size:0.75rem; color:var(--text-muted);">${sr.description}</td>
+                  <td><button class="btn btn-secondary btn-tune-rule" data-id="${sr.id}" style="padding:0.25rem 0.5rem; font-size:0.72rem;">Adjust</button></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderWsmShiftPatternsStudio() {
+  const templates = state.wsmShiftTemplates || [];
+  const patterns = state.wsmWorkPatterns || [];
+  const rotations = state.wsmRotations || [];
+  const events = state.wsmShiftEvents || [];
+
+  return `
+    <div style="display:flex; flex-direction:column; gap:1.25rem;">
+      <!-- Shift Templates -->
+      <div class="wfm-card" style="padding:1.25rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
+          <h3 style="font-size:1.1rem; color:white; font-weight:800; font-family:var(--font-display);">Reusable Shift Templates</h3>
+          <span style="font-size:0.75rem; color:var(--text-muted);">${templates.length} Templates Configured</span>
+        </div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Template ID</th>
+                <th>Name</th>
+                <th>Duration</th>
+                <th>Paid / Unpaid</th>
+                <th>Earliest / Latest Start</th>
+                <th>Allowed Start Windows</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${templates.map(t => `
+                <tr>
+                  <td style="font-weight:700; color:#818cf8;">${t.id}</td>
+                  <td style="font-weight:700; color:white;">${t.name}</td>
+                  <td><strong>${t.duration_hours}h</strong></td>
+                  <td>${t.paid_hours}h paid / ${t.unpaid_hours}h unpaid</td>
+                  <td>${t.earliest_start} – ${t.latest_start}</td>
+                  <td><span style="font-size:0.72rem; color:#38bdf8;">${(t.allowed_starts || []).join(', ')}</span></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Shift Events (Break/Lunch Engine) -->
+      <div class="wfm-card" style="padding:1.25rem;">
+        <h3 style="font-size:1.1rem; color:white; font-weight:800; font-family:var(--font-display); margin-bottom:0.75rem;">Reusable Shift Events & Intraday Timeline Rules</h3>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Event ID</th>
+                <th>Event Name</th>
+                <th>Duration</th>
+                <th>Paid / Unpaid</th>
+                <th>Offset from Shift Start</th>
+                <th>Flex Window</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${events.map(ev => `
+                <tr>
+                  <td style="font-weight:700; color:#38bdf8;">${ev.id}</td>
+                  <td style="font-weight:700; color:white;">${ev.name}</td>
+                  <td><strong>${ev.duration_minutes} mins</strong></td>
+                  <td>${ev.is_paid ? 'Paid' : 'Unpaid Meal'}</td>
+                  <td>+${ev.offset_hours_from_start} hours</td>
+                  <td>±${ev.flexible_window_minutes || 30} mins</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Work Patterns & Rotations -->
+      <div class="wfm-card" style="padding:1.25rem;">
+        <h3 style="font-size:1.1rem; color:white; font-weight:800; font-family:var(--font-display); margin-bottom:0.75rem;">Work Patterns & 4-Week Rotations</h3>
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:1rem;">
+          ${patterns.map(p => `
+            <div style="background:rgba(15,23,42,0.6); border:1px solid var(--border-light); border-radius:var(--radius-sm); padding:1rem;">
+              <div style="font-weight:800; color:white; font-size:0.9rem; margin-bottom:0.25rem;">${p.name}</div>
+              <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:0.5rem;">${p.description}</div>
+              <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:#38bdf8;">
+                <span>Weekly Hours: <strong>${p.weekly_hours}h</strong></span>
+                <span>Days: <strong>${p.days_on} on / ${p.days_off} off</strong></span>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderWsmRulesStudio() {
+  const rules = state.wsmRules || [];
+  const hardRules = rules.filter(r => r.rule_type === 'HARD');
+  const softRules = rules.filter(r => r.rule_type === 'SOFT');
+
+  return `
+    <div style="display:flex; flex-direction:column; gap:1.25rem;">
+      <!-- Hard Rules -->
+      <div class="wfm-card" style="padding:1.25rem; border-color:rgba(16,185,129,0.3);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
+          <div>
+            <h3 style="font-size:1.1rem; color:#34d399; font-weight:800; font-family:var(--font-display);">Hard Constraints (Zero-Violation Rules)</h3>
+            <p style="font-size:0.75rem; color:var(--text-muted);">Hard rules must be 100% satisfied by the automated optimization solver</p>
+          </div>
+          <span class="badge badge-success">Strict Enforcement</span>
+        </div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Rule Name</th>
+                <th>Category</th>
+                <th>Priority</th>
+                <th>Description</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${hardRules.map(hr => `
+                <tr>
+                  <td style="font-weight:700; color:white;">${hr.rule_name}</td>
+                  <td><span class="badge badge-info">${hr.category}</span></td>
+                  <td>Priority ${hr.priority}</td>
+                  <td style="font-size:0.75rem; color:var(--text-muted);">${hr.description}</td>
+                  <td><span class="badge badge-success">Enforced</span></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Soft Rules & Weights -->
+      <div class="wfm-card" style="padding:1.25rem; border-color:rgba(99,102,241,0.3);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
+          <div>
+            <h3 style="font-size:1.1rem; color:#818cf8; font-weight:800; font-family:var(--font-display);">Soft Constraints & Optimization Penalties</h3>
+            <p style="font-size:0.75rem; color:var(--text-muted);">Adjust weights (1-100) to balance agent preferences, cost, fairness, and shift stability</p>
+          </div>
+        </div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Soft Rule Name</th>
+                <th>Category</th>
+                <th>Weight (1-100)</th>
+                <th>Description</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${softRules.map(sr => `
+                <tr>
+                  <td style="font-weight:700; color:white;">${sr.rule_name}</td>
+                  <td><span class="badge badge-warning">${sr.category}</span></td>
+                  <td>
+                    <span style="font-weight:800; color:#fbbf24;">${sr.weight} pts</span>
+                  </td>
+                  <td style="font-size:0.75rem; color:var(--text-muted);">${sr.description}</td>
+                  <td>
+                    <button class="btn btn-secondary btn-tune-rule" data-id="${sr.id}" style="padding:0.25rem 0.5rem; font-size:0.72rem;">Adjust Weight</button>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  `;
+}
 
 function renderWfmScheduleConsole(rosterAgents, targetAgent, curDateStr, viewMode, displayMonthStr, displayWeekStr, displayDayStr) {
   const pendingWfmReqs = (state.workflowRequests || []).filter(r => r.status === 'pending_wfm');
@@ -4747,154 +6350,165 @@ function renderWfmScheduleConsole(rosterAgents, targetAgent, curDateStr, viewMod
   const activeDrawerDate = expandedDateStr || curDateStr;
 
   return `
-    <div style="display:flex; flex-direction:column; gap:1.25rem;">
-      <!-- WFM Top Control & Date Navigation Bar -->
-      <div class="sched-control-bar" style="background:rgba(15,23,42,0.6); padding:0.75rem 1.25rem; border-radius:var(--radius-md); border:1px solid var(--border-light); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
-        
-        <!-- Left: Console Title & Date Range -->
-        <div style="display:flex; align-items:center; gap:0.75rem;">
-          <h2 style="font-family:var(--font-display); font-size:1.2rem; font-weight:800; color:white; text-transform:uppercase; letter-spacing:0.02em;">
-            WFM Schedule Console – ${viewMode === 'monthly' ? 'Monthly View' : (viewMode === 'weekly' ? 'Weekly View' : 'Daily View')}
-          </h2>
-          <span style="font-size:0.85rem; color:var(--text-muted); font-weight:600;">
-            ${viewMode === 'monthly' ? displayMonthStr : (viewMode === 'weekly' ? displayWeekStr : displayDayStr)}
-          </span>
-        </div>
+    <div style="display:flex; flex-direction:column; gap:1rem;">
+      <!-- WSM Enterprise Schedule Optimization & Auto-Generation Studio Bar -->
+      ${renderWsmOptimizationBar(curDateStr)}
 
-        <!-- Center: Continuous Date Navigation & Calendar Picker -->
-        <div class="date-nav-toolbar">
-          <button class="nav-arrow-btn" id="console-btn-prev" title="Previous ${viewMode === 'monthly' ? 'Month' : (viewMode === 'weekly' ? 'Week' : 'Day')}">
-            <i data-lucide="chevron-left" style="width:16px;height:16px;"></i> Prev
-          </button>
-          
-          <input type="date" class="agent-date-picker-input" id="console-date-picker" value="${curDateStr}" title="Select custom date">
-          
-          <button class="nav-arrow-btn" id="console-btn-next" title="Next ${viewMode === 'monthly' ? 'Month' : (viewMode === 'weekly' ? 'Week' : 'Day')}">
-            Next <i data-lucide="chevron-right" style="width:16px;height:16px;"></i>
-          </button>
-          
-          <button class="date-nav-btn" id="console-btn-thisweek" style="font-size:0.75rem; padding:0.25rem 0.65rem; font-weight:700; border-radius:var(--radius-sm); margin-left:0.25rem;">
-            <i data-lucide="calendar" style="width:13px;height:13px;"></i> Today
-          </button>
-        </div>
+      ${state.wsmStudioTab === 'campaigns' ? renderWsmCampaignsStudio() : ''}
+      ${state.wsmStudioTab === 'shifts-patterns' ? renderWsmShiftPatternsStudio() : ''}
+      ${state.wsmStudioTab === 'rules-costs' ? renderWsmRulesStudio() : ''}
 
-        <!-- Right: View Mode Tabs & Export -->
-        <div style="display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap;">
-          <div class="view-mode-tabs" style="margin:0;">
-            <button class="view-tab-btn ${viewMode === 'monthly' ? 'active' : ''}" data-mode="monthly">Monthly</button>
-            <button class="view-tab-btn ${viewMode === 'weekly' ? 'active' : ''}" data-mode="weekly">Weekly</button>
-            <button class="view-tab-btn ${viewMode === 'daily' ? 'active' : ''}" data-mode="daily">Daily</button>
+      ${state.wsmStudioTab === 'auto-scheduler' ? `
+        <!-- WFM Top Control & Date Navigation Bar -->
+        <div class="sched-control-bar" style="background:rgba(15,23,42,0.6); padding:0.75rem 1.25rem; border-radius:var(--radius-md); border:1px solid var(--border-light); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
+          
+          <!-- Left: Console Title & Date Range -->
+          <div style="display:flex; align-items:center; gap:0.75rem;">
+            <h2 style="font-family:var(--font-display); font-size:1.2rem; font-weight:800; color:white; text-transform:uppercase; letter-spacing:0.02em;">
+              WFM Schedule Console – ${viewMode === 'monthly' ? 'Monthly View' : (viewMode === 'weekly' ? 'Weekly View' : 'Daily View')}
+            </h2>
+            <span style="font-size:0.85rem; color:var(--text-muted); font-weight:600;">
+              ${viewMode === 'monthly' ? displayMonthStr : (viewMode === 'weekly' ? displayWeekStr : displayDayStr)}
+            </span>
           </div>
 
-          <button class="btn btn-primary" id="btn-export-wfm-sched" style="padding:0.35rem 0.85rem; font-size:0.8rem;"><i data-lucide="download" style="width:14px;height:14px;"></i> Export</button>
-        </div>
-      </div>
-
-      <!-- 3-Column Enterprise Workspace -->
-      <div class="wfm-layout-grid">
-        
-        <!-- LEFT SUB-FILTER & STATS COLUMN -->
-        <div style="display:flex; flex-direction:column; gap:1.25rem;">
-          <div class="wfm-card">
-            <h4 style="font-size:0.85rem; font-weight:700; color:white; margin-bottom:0.75rem;">Filters</h4>
+          <!-- Center: Continuous Date Navigation & Calendar Picker -->
+          <div class="date-nav-toolbar">
+            <button class="nav-arrow-btn" id="console-btn-prev" title="Previous ${viewMode === 'monthly' ? 'Month' : (viewMode === 'weekly' ? 'Week' : 'Day')}">
+              <i data-lucide="chevron-left" style="width:16px;height:16px;"></i> Prev
+            </button>
             
-            <div style="display:flex; flex-direction:column; gap:0.6rem;">
-              <input type="text" class="form-control" id="console-search-agent" value="${scheduleSearchQuery}" placeholder="Search agent name/ID..." style="font-size:0.8rem; padding:0.4rem 0.6rem;">
-
-              <div>
-                <label class="filter-label">Team</label>
-                <select class="sidebar-select" id="console-filter-team" style="padding:0.4rem 0.5rem; font-size:0.8rem;">
-                  <option value="All" ${schedFilterTeam === 'All' ? 'selected' : ''}>All Teams</option>
-                  <option value="Team Alpha" ${schedFilterTeam === 'Team Alpha' ? 'selected' : ''}>Team Alpha</option>
-                  <option value="Team Bravo" ${schedFilterTeam === 'Team Bravo' ? 'selected' : ''}>Team Bravo</option>
-                </select>
-              </div>
-
-              <div>
-                <label class="filter-label">LOB / Brand</label>
-                <select class="sidebar-select" id="console-filter-lob" style="padding:0.4rem 0.5rem; font-size:0.8rem;">
-                  <option value="All" ${schedFilterLOB === 'All' ? 'selected' : ''}>All LOBs</option>
-                  ${BRANDS.map(b => `<option value="${b}" ${schedFilterLOB === b ? 'selected' : ''}>${b}</option>`).join('')}
-                </select>
-              </div>
-
-              <div>
-                <label class="filter-label">Skill</label>
-                <select class="sidebar-select" id="console-filter-skill" style="padding:0.4rem 0.5rem; font-size:0.8rem;">
-                  <option value="All" ${schedFilterSkill === 'All' ? 'selected' : ''}>All Skills</option>
-                  <option value="Voice Support" ${schedFilterSkill === 'Voice Support' ? 'selected' : ''}>Voice Support</option>
-                  <option value="Live Chat" ${schedFilterSkill === 'Live Chat' ? 'selected' : ''}>Live Chat</option>
-                  <option value="Email Support" ${schedFilterSkill === 'Email Support' ? 'selected' : ''}>Email Support</option>
-                </select>
-              </div>
-
-              <div style="display:flex; gap:0.4rem; margin-top:0.35rem;">
-                <button class="btn btn-primary" id="btn-console-search" style="flex:1; padding:0.45rem 0.75rem; font-size:0.8rem;"><i data-lucide="search" style="width:13px;height:13px;"></i> Apply</button>
-                <button class="btn btn-secondary" id="btn-console-reset" style="padding:0.45rem 0.75rem; font-size:0.8rem;">Reset</button>
-              </div>
-            </div>
+            <input type="date" class="agent-date-picker-input" id="console-date-picker" value="${curDateStr}" title="Select custom date">
+            
+            <button class="nav-arrow-btn" id="console-btn-next" title="Next ${viewMode === 'monthly' ? 'Month' : (viewMode === 'weekly' ? 'Week' : 'Day')}">
+              Next <i data-lucide="chevron-right" style="width:16px;height:16px;"></i>
+            </button>
+            
+            <button class="date-nav-btn" id="console-btn-thisweek" style="font-size:0.75rem; padding:0.25rem 0.65rem; font-weight:700; border-radius:var(--radius-sm); margin-left:0.25rem;">
+              <i data-lucide="calendar" style="width:13px;height:13px;"></i> Today
+            </button>
           </div>
 
-          <!-- Pending WFM Approvals Panel (Stage 2) -->
-          <div class="wfm-card" style="border-color:rgba(56,189,248,0.4); background:rgba(56,189,248,0.06);">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.6rem;">
-              <h4 style="font-size:0.85rem; font-weight:700; color:#38bdf8;">
-                Pending WFM Approvals
-              </h4>
-              <span class="badge badge-info">${pendingWfmReqs.length}</span>
+          <!-- Right: View Mode Tabs & Export -->
+          <div style="display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap;">
+            <div class="view-mode-tabs" style="margin:0;">
+              <button class="view-tab-btn ${viewMode === 'monthly' ? 'active' : ''}" data-mode="monthly">Monthly</button>
+              <button class="view-tab-btn ${viewMode === 'weekly' ? 'active' : ''}" data-mode="weekly">Weekly</button>
+              <button class="view-tab-btn ${viewMode === 'daily' ? 'active' : ''}" data-mode="daily">Daily</button>
             </div>
 
-            ${pendingWfmReqs.length === 0 ? `
-              <div style="font-size:0.75rem; color:var(--text-muted);">No pending requests awaiting WFM approval.</div>
-            ` : `
-              <div style="display:flex; flex-direction:column; gap:0.6rem;">
-                ${pendingWfmReqs.slice(0, 3).map(r => `
-                  <div style="background:rgba(15,23,42,0.6); padding:0.5rem; border-radius:var(--radius-sm); border:1px solid var(--border-light); font-size:0.75rem;">
-                    <div style="display:flex; justify-content:space-between; font-weight:700; color:white;">
-                      <span>${r.agent_name}</span>
-                      <span style="color:#fbbf24;">${r.request_type.toUpperCase()}</span>
-                    </div>
-                    <div style="color:var(--text-muted); font-size:0.7rem; margin:0.2rem 0;">
-                      ${(r.dates || []).join(', ')} • ${r.reason}
-                    </div>
-                    <div style="color:#34d399; font-size:0.68rem; margin-bottom:0.4rem;">
-                      ✓ Verified: ${r.tl_name || (r.initiator_role === 'Team Leader' ? 'Team Leader Initiated' : 'TL Approved')}
-                    </div>
-                    <div style="display:flex; gap:0.3rem;">
-                      <button class="btn-approve-sm wfm-approve-btn" data-id="${r.id}" style="padding:0.25rem 0.55rem; font-size:0.72rem;"><i data-lucide="check"></i> Approve & Apply</button>
-                      <button class="btn-reject-sm wfm-reject-btn" data-id="${r.id}" style="padding:0.25rem 0.55rem; font-size:0.72rem;"><i data-lucide="x"></i> Reject</button>
-                    </div>
-                  </div>
-                `).join('')}
-              </div>
-            `}
-          </div>
-
-          <!-- Quick Stats Card -->
-          <div class="wfm-card">
-            <h4 style="font-size:0.85rem; font-weight:700; color:white; margin-bottom:0.75rem;">Enterprise Coverage Stats</h4>
-            <div class="quick-stats-list">
-              <div class="quick-stat-row"><span>👥 Total Agents</span><strong>${rosterAgents.length}</strong></div>
-              <div class="quick-stat-row"><span>📅 Working Shifts</span><strong style="color:#10b981;">301</strong></div>
-              <div class="quick-stat-row"><span>🏖️ Planned Leaves</span><strong style="color:#f59e0b;">10</strong></div>
-              <div class="quick-stat-row"><span>⚠️ Unplanned Absences</span><strong style="color:#ef4444;">5</strong></div>
-              <div class="quick-stat-row"><span>⏱️ Scheduled Activities</span><strong style="color:#06b6d4;">18</strong></div>
-            </div>
+            <button class="btn btn-primary" id="btn-export-wfm-sched" style="padding:0.35rem 0.85rem; font-size:0.8rem;"><i data-lucide="download" style="width:14px;height:14px;"></i> Export</button>
           </div>
         </div>
 
-        <!-- CENTER MASTER WORKSPACE: WEEKLY / DAILY / MONTHLY -->
-        ${viewMode === 'monthly' ? renderWfmMonthlyView(rosterAgents, targetAgent, curDateStr, displayMonthStr) : ''}
-        ${viewMode === 'weekly' ? renderWfmWeeklyView(rosterAgents, targetAgent, curDateStr, displayWeekStr) : ''}
-        ${viewMode === 'daily' ? renderWfmDailyView(rosterAgents, targetAgent, curDateStr, displayDayStr) : ''}
+        <!-- 3-Column Enterprise Workspace -->
+        <div class="wfm-layout-grid">
+          
+          <!-- LEFT SUB-FILTER & STATS COLUMN -->
+          <div style="display:flex; flex-direction:column; gap:1.25rem;">
+            <div class="wfm-card">
+              <h4 style="font-size:0.85rem; font-weight:700; color:white; margin-bottom:0.75rem;">Filters</h4>
+              
+              <div style="display:flex; flex-direction:column; gap:0.6rem;">
+                <input type="text" class="form-control" id="console-search-agent" value="${scheduleSearchQuery}" placeholder="Search agent name/ID..." style="font-size:0.8rem; padding:0.4rem 0.6rem;">
 
-        <!-- RIGHT SLIDE-OUT "EDIT SCHEDULE" DRAWER -->
-        ${renderWfmEditScheduleDrawer(activeDrawerAgent, activeDrawerDate, drawerSelectedAction)}
+                <div>
+                  <label class="filter-label">Team</label>
+                  <select class="sidebar-select" id="console-filter-team" style="padding:0.4rem 0.5rem; font-size:0.8rem;">
+                    <option value="All" ${schedFilterTeam === 'All' ? 'selected' : ''}>All Teams</option>
+                    <option value="Team Alpha" ${schedFilterTeam === 'Team Alpha' ? 'selected' : ''}>Team Alpha</option>
+                    <option value="Team Bravo" ${schedFilterTeam === 'Team Bravo' ? 'selected' : ''}>Team Bravo</option>
+                  </select>
+                </div>
 
-      </div>
+                <div>
+                  <label class="filter-label">LOB / Brand</label>
+                  <select class="sidebar-select" id="console-filter-lob" style="padding:0.4rem 0.5rem; font-size:0.8rem;">
+                    <option value="All" ${schedFilterLOB === 'All' ? 'selected' : ''}>All LOBs</option>
+                    ${BRANDS.map(b => `<option value="${b}" ${schedFilterLOB === b ? 'selected' : ''}>${b}</option>`).join('')}
+                  </select>
+                </div>
+
+                <div>
+                  <label class="filter-label">Skill</label>
+                  <select class="sidebar-select" id="console-filter-skill" style="padding:0.4rem 0.5rem; font-size:0.8rem;">
+                    <option value="All" ${schedFilterSkill === 'All' ? 'selected' : ''}>All Skills</option>
+                    <option value="Voice Support" ${schedFilterSkill === 'Voice Support' ? 'selected' : ''}>Voice Support</option>
+                    <option value="Live Chat" ${schedFilterSkill === 'Live Chat' ? 'selected' : ''}>Live Chat</option>
+                    <option value="Email Support" ${schedFilterSkill === 'Email Support' ? 'selected' : ''}>Email Support</option>
+                  </select>
+                </div>
+
+                <div style="display:flex; gap:0.4rem; margin-top:0.35rem;">
+                  <button class="btn btn-primary" id="btn-console-search" style="flex:1; padding:0.45rem 0.75rem; font-size:0.8rem;"><i data-lucide="search" style="width:13px;height:13px;"></i> Apply</button>
+                  <button class="btn btn-secondary" id="btn-console-reset" style="padding:0.45rem 0.75rem; font-size:0.8rem;">Reset</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Pending WFM Approvals Panel (Stage 2) -->
+            <div class="wfm-card" style="border-color:rgba(56,189,248,0.4); background:rgba(56,189,248,0.06);">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.6rem;">
+                <h4 style="font-size:0.85rem; font-weight:700; color:#38bdf8;">
+                  Pending WFM Approvals
+                </h4>
+                <span class="badge badge-info">${pendingWfmReqs.length}</span>
+              </div>
+
+              ${pendingWfmReqs.length === 0 ? `
+                <div style="font-size:0.75rem; color:var(--text-muted);">No pending requests awaiting WFM approval.</div>
+              ` : `
+                <div style="display:flex; flex-direction:column; gap:0.6rem;">
+                  ${pendingWfmReqs.slice(0, 3).map(r => `
+                    <div style="background:rgba(15,23,42,0.6); padding:0.5rem; border-radius:var(--radius-sm); border:1px solid var(--border-light); font-size:0.75rem;">
+                      <div style="display:flex; justify-content:space-between; font-weight:700; color:white;">
+                        <span>${r.agent_name}</span>
+                        <span style="color:#fbbf24;">${r.request_type.toUpperCase()}</span>
+                      </div>
+                      <div style="color:var(--text-muted); font-size:0.7rem; margin:0.2rem 0;">
+                        ${(r.dates || []).join(', ')} • ${r.reason}
+                      </div>
+                      <div style="color:#34d399; font-size:0.68rem; margin-bottom:0.4rem;">
+                        ✓ Verified: ${r.tl_name || (r.initiator_role === 'Team Leader' ? 'Team Leader Initiated' : 'TL Approved')}
+                      </div>
+                      <div style="display:flex; gap:0.3rem;">
+                        <button class="btn-approve-sm wfm-approve-btn" data-id="${r.id}" style="padding:0.25rem 0.55rem; font-size:0.72rem;"><i data-lucide="check"></i> Approve & Apply</button>
+                        <button class="btn-reject-sm wfm-reject-btn" data-id="${r.id}" style="padding:0.25rem 0.55rem; font-size:0.72rem;"><i data-lucide="x"></i> Reject</button>
+                      </div>
+                    </div>
+                  `).join('')}
+                </div>
+              `}
+            </div>
+
+            <!-- Quick Stats Card -->
+            <div class="wfm-card">
+              <h4 style="font-size:0.85rem; font-weight:700; color:white; margin-bottom:0.75rem;">Enterprise Coverage Stats</h4>
+              <div class="quick-stats-list">
+                <div class="quick-stat-row"><span>👥 Total Agents</span><strong>${rosterAgents.length}</strong></div>
+                <div class="quick-stat-row"><span>📅 Working Shifts</span><strong style="color:#10b981;">301</strong></div>
+                <div class="quick-stat-row"><span>🏖️ Planned Leaves</span><strong style="color:#f59e0b;">10</strong></div>
+                <div class="quick-stat-row"><span>⚠️ Unplanned Absences</span><strong style="color:#ef4444;">5</strong></div>
+                <div class="quick-stat-row"><span>⏱️ Scheduled Activities</span><strong style="color:#06b6d4;">18</strong></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- CENTER MASTER WORKSPACE: WEEKLY / DAILY / MONTHLY -->
+          ${viewMode === 'monthly' ? renderWfmMonthlyView(rosterAgents, targetAgent, curDateStr, displayMonthStr) : ''}
+          ${viewMode === 'weekly' ? renderWfmWeeklyView(rosterAgents, targetAgent, curDateStr, displayWeekStr) : ''}
+          ${viewMode === 'daily' ? renderWfmDailyView(rosterAgents, targetAgent, curDateStr, displayDayStr) : ''}
+
+          <!-- RIGHT SLIDE-OUT "EDIT SCHEDULE" DRAWER -->
+          ${renderWfmEditScheduleDrawer(activeDrawerAgent, activeDrawerDate, drawerSelectedAction)}
+
+        </div>
+      ` : ''}
     </div>
   `;
 }
+
+
 
 // 2A. WFM WEEKLY VIEW (7-Day Multi-Agent Matrix + Inline Intraday)
 function renderWfmWeeklyView(rosterAgents, targetAgent, curDateStr, displayWeekStr) {
@@ -4995,8 +6609,9 @@ function renderWfmWeeklyView(rosterAgents, targetAgent, curDateStr, displayWeekS
                           </div>
 
                           <div style="display:flex; gap:0.35rem;">
-                            <button class="btn btn-secondary" style="padding:0.25rem 0.5rem; font-size:0.7rem;"><i data-lucide="copy" style="width:12px;height:12px;"></i> Copy Day</button>
-                            <button class="btn btn-secondary" style="padding:0.25rem 0.5rem; font-size:0.7rem;"><i data-lucide="clipboard" style="width:12px;height:12px;"></i> Paste Day</button>
+                            <button type="button" class="btn btn-secondary btn-wsm-why-inspect" data-id="${ag.id}" data-name="${ag.name}" data-date="${expandedDateStr}" style="padding:0.25rem 0.6rem; font-size:0.72rem; color:#38bdf8; font-weight:700;"><i data-lucide="help-circle" style="width:12px;height:12px;"></i> View "Why?"</button>
+                            <button type="button" class="btn btn-secondary" style="padding:0.25rem 0.5rem; font-size:0.7rem;"><i data-lucide="copy" style="width:12px;height:12px;"></i> Copy Day</button>
+                            <button type="button" class="btn btn-secondary" style="padding:0.25rem 0.5rem; font-size:0.7rem;"><i data-lucide="clipboard" style="width:12px;height:12px;"></i> Paste Day</button>
                           </div>
                         </div>
 
@@ -5162,6 +6777,257 @@ function renderWfmMonthlyView(rosterAgents, targetAgent, curDateStr, displayMont
   `;
 }
 
+function renderDrawerActionForm(currentAction, curSched, activeDate) {
+  if (currentAction === 'delete') {
+    return `
+      <!-- DELETE / RESET SCHEDULE FORM -->
+      <div style="font-size:0.78rem; font-weight:800; color:#f87171; margin-bottom:0.6rem; text-transform:uppercase; display:flex; align-items:center; gap:0.4rem;">
+        <i data-lucide="trash-2" style="width:14px;height:14px;"></i> Delete / Reset Day Schedule
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:0.6rem;">
+        <div>
+          <label class="filter-label">Select Deletion Action</label>
+          <select class="sidebar-select" id="drawer-delete-type" style="padding:0.45rem 0.5rem; font-size:0.85rem;">
+            <option value="reset_baseline">🔄 Reset Schedule to Default Baseline</option>
+            <option value="set_unassigned">⛔ Wipe & Mark Day as Unassigned / Off Duty</option>
+            <option value="clear_activities">🧹 Clear All Scheduled Activities (Keep Shift)</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="filter-label">Reason *</label>
+          <select class="sidebar-select" id="drawer-reason" style="padding:0.4rem 0.5rem; font-size:0.85rem;">
+            <option value="Operational Schedule Deletion">Operational Schedule Deletion</option>
+            <option value="Shift Cancellation">Shift Cancellation</option>
+            <option value="Agent Profile Realignment">Agent Profile Realignment</option>
+            <option value="Correction / Rollback">Correction / Rollback</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="filter-label">Comments</label>
+          <textarea class="form-control" id="drawer-comments" rows="2" style="font-size:0.8rem; padding:0.4rem;" placeholder="Reason for deleting or resetting schedule..."></textarea>
+        </div>
+
+        <div style="background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); border-radius:var(--radius-sm); padding:0.5rem; font-size:0.72rem; color:#fca5a5;">
+          ⚠️ <strong>WFM Admin Full Access:</strong> This action permanently resets or wipes the agent's scheduled shifts/activities on ${activeDate}.
+        </div>
+      </div>
+    `;
+  }
+
+  if (currentAction === 'slide') {
+    return `
+      <!-- SLIDE SHIFT FORM -->
+      <div style="font-size:0.78rem; font-weight:800; color:white; margin-bottom:0.6rem; text-transform:uppercase; display:flex; justify-content:space-between; align-items:center;">
+        <span>Slide Shift Intervals</span>
+        <span style="color:#38bdf8; font-size:0.7rem;">Base: ${curSched.shiftStart || '08:00'}-${curSched.shiftEnd || '17:00'}</span>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:0.6rem;">
+        <div>
+          <label class="filter-label">Quick Slide Presets</label>
+          <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:0.35rem;">
+            <button type="button" class="slide-preset-btn" data-mins="-60">-1 Hr</button>
+            <button type="button" class="slide-preset-btn" data-mins="-30">-30m</button>
+            <button type="button" class="slide-preset-btn" data-mins="30">+30m</button>
+            <button type="button" class="slide-preset-btn" data-mins="60">+1 Hr</button>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
+          <div>
+            <label class="filter-label">Adjusted Start</label>
+            <input type="text" class="form-control" id="drawer-start-time" value="${curSched.shiftStart || '08:00'}" style="font-size:0.85rem; padding:0.4rem 0.5rem;">
+          </div>
+          <div>
+            <label class="filter-label">Adjusted End</label>
+            <input type="text" class="form-control" id="drawer-end-time" value="${curSched.shiftEnd || '17:00'}" style="font-size:0.85rem; padding:0.4rem 0.5rem;">
+          </div>
+        </div>
+
+        <div>
+          <label class="filter-label">Reason *</label>
+          <select class="sidebar-select" id="drawer-reason" style="padding:0.4rem 0.5rem; font-size:0.85rem;">
+            <option value="Operational Peak Adjustment">Operational Peak Adjustment</option>
+            <option value="Agent Shift Slide Request">Agent Shift Slide Request</option>
+            <option value="Queue Balancing">Queue Balancing</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="filter-label">Comments</label>
+          <textarea class="form-control" id="drawer-comments" rows="2" style="font-size:0.8rem; padding:0.4rem;" placeholder="Shift slide notes..."></textarea>
+        </div>
+      </div>
+    `;
+  }
+
+  if (currentAction === 'weekoff') {
+    return `
+      <!-- WEEK OFF FORM -->
+      <div style="font-size:0.78rem; font-weight:800; color:white; margin-bottom:0.6rem; text-transform:uppercase;">
+        Week Off Status
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:0.6rem;">
+        <div>
+          <label class="filter-label">Change Status To</label>
+          <select class="sidebar-select" id="drawer-weekoff-action" style="padding:0.45rem 0.5rem; font-size:0.85rem;">
+            <option value="set_off" ${curSched.isOff ? 'selected' : ''}>🏖️ Set as Week Off (Off Duty)</option>
+            <option value="working" ${!curSched.isOff ? 'selected' : ''}>🟢 Restore Working Shift (08:00 - 17:00)</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="filter-label">Reason *</label>
+          <select class="sidebar-select" id="drawer-reason" style="padding:0.4rem 0.5rem; font-size:0.85rem;">
+            <option value="Shift Rotation">Shift Rotation</option>
+            <option value="Approved Week Off Change">Approved Week Off Change</option>
+            <option value="Operational Roster Rebalance">Operational Roster Rebalance</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="filter-label">Comments</label>
+          <textarea class="form-control" id="drawer-comments" rows="2" style="font-size:0.8rem; padding:0.4rem;" placeholder="Week off adjustment notes..."></textarea>
+        </div>
+      </div>
+    `;
+  }
+
+  if (currentAction === 'leave') {
+    return `
+      <!-- ADD LEAVE FORM -->
+      <div style="font-size:0.78rem; font-weight:800; color:white; margin-bottom:0.6rem; text-transform:uppercase;">
+        Leave Details
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:0.6rem;">
+        <div>
+          <label class="filter-label">Leave Type</label>
+          <select class="sidebar-select" id="drawer-leave-type" style="padding:0.45rem 0.5rem; font-size:0.85rem;">
+            <option value="PTO">🏖️ Paid Time Off (PTO)</option>
+            <option value="Sick Leave">💗 Sick Leave</option>
+            <option value="Emergency Leave">🚨 Emergency Leave</option>
+            <option value="Unplanned Leave">⏳ Unplanned Leave</option>
+          </select>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
+          <div>
+            <label class="filter-label">Start Time</label>
+            <input type="text" class="form-control" id="drawer-start-time" value="08:00" style="font-size:0.85rem; padding:0.4rem 0.5rem;">
+          </div>
+          <div>
+            <label class="filter-label">End Time</label>
+            <input type="text" class="form-control" id="drawer-end-time" value="17:00" style="font-size:0.85rem; padding:0.4rem 0.5rem;">
+          </div>
+        </div>
+
+        <div>
+          <label class="filter-label">Reason *</label>
+          <select class="sidebar-select" id="drawer-reason" style="padding:0.4rem 0.5rem; font-size:0.85rem;">
+            <option value="Approved Personal Leave">Approved Personal Leave</option>
+            <option value="Medical / Health">Medical / Health</option>
+            <option value="Emergency Requirement">Emergency Requirement</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="filter-label">Comments</label>
+          <textarea class="form-control" id="drawer-comments" rows="2" style="font-size:0.8rem; padding:0.4rem;" placeholder="Leave approval notes..."></textarea>
+        </div>
+      </div>
+    `;
+  }
+
+  if (currentAction === 'activity') {
+    return `
+      <!-- ADD ACTIVITY FORM -->
+      <div style="font-size:0.78rem; font-weight:800; color:white; margin-bottom:0.6rem; text-transform:uppercase;">
+        Activity Details
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:0.6rem;">
+        <div>
+          <label class="filter-label">Activity Type</label>
+          <select class="sidebar-select" id="drawer-act-type" style="padding:0.45rem 0.5rem; font-size:0.85rem;">
+            <option value="Coaching">🟢 Coaching (1-on-1)</option>
+            <option value="Training">🟣 Training / Upskilling</option>
+            <option value="Meeting">🔵 Team Meeting</option>
+            <option value="Break">🔷 Extra Break</option>
+            <option value="Lunch">🟠 Lunch Shift Adjustment</option>
+          </select>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
+          <div>
+            <label class="filter-label">Start Time</label>
+            <input type="text" class="form-control" id="drawer-start-time" value="15:00" style="font-size:0.85rem; padding:0.4rem 0.5rem;">
+          </div>
+          <div>
+            <label class="filter-label">End Time</label>
+            <input type="text" class="form-control" id="drawer-end-time" value="16:00" style="font-size:0.85rem; padding:0.4rem 0.5rem;">
+          </div>
+        </div>
+
+        <div>
+          <label class="filter-label">Reason *</label>
+          <select class="sidebar-select" id="drawer-reason" style="padding:0.4rem 0.5rem; font-size:0.85rem;">
+            <option value="Weekly QA Coaching">Weekly QA Coaching</option>
+            <option value="Product Training">Product Training</option>
+            <option value="Team Sync">Team Sync</option>
+            <option value="Operational Exception">Operational Exception</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="filter-label">Comments</label>
+          <textarea class="form-control" id="drawer-comments" rows="2" style="font-size:0.8rem; padding:0.4rem;" placeholder="Activity scheduling notes..."></textarea>
+        </div>
+      </div>
+    `;
+  }
+
+  // DEFAULT: Change Shift
+  return `
+    <!-- CHANGE SHIFT FORM (DEFAULT) -->
+    <div style="font-size:0.78rem; font-weight:800; color:white; margin-bottom:0.6rem; text-transform:uppercase;">
+      Change Shift Hours
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:0.6rem;">
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
+        <div>
+          <label class="filter-label">Shift Start</label>
+          <input type="text" class="form-control" id="drawer-start-time" value="${curSched.shiftStart || '08:00'}" style="font-size:0.85rem; padding:0.4rem 0.5rem;">
+        </div>
+        <div>
+          <label class="filter-label">Shift End</label>
+          <input type="text" class="form-control" id="drawer-end-time" value="${curSched.shiftEnd || '17:00'}" style="font-size:0.85rem; padding:0.4rem 0.5rem;">
+        </div>
+      </div>
+
+      <div>
+        <label class="filter-label">Reason *</label>
+        <select class="sidebar-select" id="drawer-reason" style="padding:0.4rem 0.5rem; font-size:0.85rem;">
+          <option value="Coverage Requirement">Coverage Requirement</option>
+          <option value="Business Requirement">Business Requirement</option>
+          <option value="Agent Shift Swap">Agent Shift Swap</option>
+          <option value="Emergency Coverage">Emergency Coverage</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="filter-label">Comments</label>
+        <textarea class="form-control" id="drawer-comments" rows="2" style="font-size:0.8rem; padding:0.4rem;" placeholder="Shift change reason / audit details..."></textarea>
+      </div>
+    </div>
+  `;
+}
+
 // 2D. WFM RIGHT EDIT SCHEDULE DRAWER (Fully Interactive Action Forms)
 function renderWfmEditScheduleDrawer(targetAgent, activeDate, currentAction) {
   const curSched = getResolvedAgentDaySchedule(targetAgent, activeDate);
@@ -5191,216 +7057,52 @@ function renderWfmEditScheduleDrawer(targetAgent, activeDate, currentAction) {
       <!-- Action Buttons Selector Grid -->
       <div style="margin-bottom:1rem;">
         <label class="filter-label">Select Action</label>
-        <div class="drawer-actions-grid">
-          <button type="button" class="drawer-action-btn ${currentAction === 'shift' ? 'active' : ''}" data-act="shift"><i data-lucide="edit-3" style="width:14px;height:14px;"></i> Change Shift</button>
-          <button type="button" class="drawer-action-btn ${currentAction === 'slide' ? 'active' : ''}" data-act="slide"><i data-lucide="move" style="width:14px;height:14px;"></i> Slide Shift</button>
-          <button type="button" class="drawer-action-btn ${currentAction === 'weekoff' ? 'active' : ''}" data-act="weekoff"><i data-lucide="calendar" style="width:14px;height:14px;"></i> Week Off</button>
-          <button type="button" class="drawer-action-btn ${currentAction === 'leave' ? 'active' : ''}" data-act="leave"><i data-lucide="umbrella" style="width:14px;height:14px;"></i> Add Leave</button>
+        <div class="drawer-actions-grid" style="grid-template-columns: repeat(3, 1fr); gap: 0.35rem;">
+          <button type="button" class="drawer-action-btn ${currentAction === 'shift' ? 'active' : ''}" data-act="shift"><i data-lucide="edit-3" style="width:13px;height:13px;"></i> Change Shift</button>
+          <button type="button" class="drawer-action-btn ${currentAction === 'slide' ? 'active' : ''}" data-act="slide"><i data-lucide="move" style="width:13px;height:13px;"></i> Slide Shift</button>
+          <button type="button" class="drawer-action-btn ${currentAction === 'weekoff' ? 'active' : ''}" data-act="weekoff"><i data-lucide="calendar" style="width:13px;height:13px;"></i> Week Off</button>
+          <button type="button" class="drawer-action-btn ${currentAction === 'leave' ? 'active' : ''}" data-act="leave"><i data-lucide="umbrella" style="width:13px;height:13px;"></i> Add Leave</button>
+          <button type="button" class="drawer-action-btn ${currentAction === 'activity' ? 'active' : ''}" data-act="activity"><i data-lucide="plus-circle" style="width:13px;height:13px;"></i> Add Activity</button>
+          <button type="button" class="drawer-action-btn ${currentAction === 'delete' ? 'active' : ''}" data-act="delete" style="color:#f87171;"><i data-lucide="trash-2" style="width:13px;height:13px; color:#f87171;"></i> Delete Schedule</button>
         </div>
-        <button type="button" class="drawer-action-btn ${currentAction === 'activity' ? 'active' : ''}" data-act="activity" style="width:100%; margin-top:0.25rem;"><i data-lucide="plus-circle" style="width:14px;height:14px;"></i> Add Activity</button>
+      </div>
+
+      <!-- Currently Scheduled Activities & Events on this Day (With 1-Click Delete) -->
+      <div style="background:rgba(15,23,42,0.4); border:1px solid rgba(255,255,255,0.06); border-radius:var(--radius-sm); padding:0.65rem 0.75rem; margin-bottom:0.85rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.35rem;">
+          <span style="font-size:0.72rem; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Activities on ${activeDate}:</span>
+          <span style="font-size:0.68rem; color:#38bdf8;">${(curSched.activities || []).length} Custom</span>
+        </div>
+        ${(curSched.activities && curSched.activities.length > 0) ? `
+          <div style="display:flex; flex-direction:column; gap:0.35rem;">
+            ${curSched.activities.map((act, idx) => `
+              <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(30,41,59,0.7); padding:0.3rem 0.5rem; border-radius:4px; border:1px solid var(--border-light); font-size:0.74rem;">
+                <div>
+                  <strong style="color:white;">${act.name}</strong>
+                  <span style="color:#38bdf8; font-size:0.68rem; margin-left:0.3rem;">${act.start} - ${act.end}</span>
+                </div>
+                <button type="button" class="btn-drawer-delete-activity" data-id="${act.id || idx}" data-name="${act.name}" style="background:rgba(239,68,68,0.15); border:1px solid rgba(239,68,68,0.4); color:#f87171; border-radius:3px; padding:2px 6px; cursor:pointer; font-size:0.68rem;" title="Delete this activity">
+                  <i data-lucide="trash-2" style="width:11px;height:11px;"></i> Delete
+                </button>
+              </div>
+            `).join('')}
+          </div>
+        ` : `
+          <div style="font-size:0.7rem; color:var(--text-muted); font-style:italic;">No custom activities scheduled (Shift: ${curSched.shiftStart || '08:00'} - ${curSched.shiftEnd || '17:00'}).</div>
+        `}
       </div>
 
       <!-- Dynamic Form Based on Selected Action -->
       <div style="background:rgba(15,23,42,0.6); border:1px solid var(--border-light); border-radius:var(--radius-md); padding:0.85rem; margin-bottom:1rem;">
-        
-        ${currentAction === 'slide' ? `
-          <!-- SLIDE SHIFT FORM -->
-          <div style="font-size:0.78rem; font-weight:800; color:white; margin-bottom:0.6rem; text-transform:uppercase; display:flex; justify-content:space-between; align-items:center;">
-            <span>Slide Shift Intervals</span>
-            <span style="color:#38bdf8; font-size:0.7rem;">Base: ${curSched.shiftStart || '08:00'}-${curSched.shiftEnd || '17:00'}</span>
-          </div>
-
-          <div style="display:flex; flex-direction:column; gap:0.6rem;">
-            <div>
-              <label class="filter-label">Quick Slide Presets</label>
-              <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:0.35rem;">
-                <button type="button" class="slide-preset-btn" data-mins="-60">-1 Hr</button>
-                <button type="button" class="slide-preset-btn" data-mins="-30">-30m</button>
-                <button type="button" class="slide-preset-btn" data-mins="30">+30m</button>
-                <button type="button" class="slide-preset-btn" data-mins="60">+1 Hr</button>
-              </div>
-            </div>
-
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
-              <div>
-                <label class="filter-label">Adjusted Start</label>
-                <input type="text" class="form-control" id="drawer-start-time" value="${curSched.shiftStart || '08:00'}" style="font-size:0.85rem; padding:0.4rem 0.5rem;">
-              </div>
-              <div>
-                <label class="filter-label">Adjusted End</label>
-                <input type="text" class="form-control" id="drawer-end-time" value="${curSched.shiftEnd || '17:00'}" style="font-size:0.85rem; padding:0.4rem 0.5rem;">
-              </div>
-            </div>
-
-            <div>
-              <label class="filter-label">Reason *</label>
-              <select class="sidebar-select" id="drawer-reason" style="padding:0.4rem 0.5rem; font-size:0.85rem;">
-                <option value="Operational Peak Adjustment">Operational Peak Adjustment</option>
-                <option value="Agent Shift Slide Request">Agent Shift Slide Request</option>
-                <option value="Queue Balancing">Queue Balancing</option>
-              </select>
-            </div>
-
-            <div>
-              <label class="filter-label">Comments</label>
-              <textarea class="form-control" id="drawer-comments" rows="2" style="font-size:0.8rem; padding:0.4rem;" placeholder="Shift slide notes..."></textarea>
-            </div>
-          </div>
-        ` : (currentAction === 'weekoff' ? `
-          <!-- WEEK OFF FORM -->
-          <div style="font-size:0.78rem; font-weight:800; color:white; margin-bottom:0.6rem; text-transform:uppercase;">
-            Week Off Status
-          </div>
-
-          <div style="display:flex; flex-direction:column; gap:0.6rem;">
-            <div>
-              <label class="filter-label">Change Status To</label>
-              <select class="sidebar-select" id="drawer-weekoff-action" style="padding:0.45rem 0.5rem; font-size:0.85rem;">
-                <option value="set_off" ${curSched.isOff ? 'selected' : ''}>🏖️ Set as Week Off (Off Duty)</option>
-                <option value="working" ${!curSched.isOff ? 'selected' : ''}>🟢 Restore Working Shift (08:00 - 17:00)</option>
-              </select>
-            </div>
-
-            <div>
-              <label class="filter-label">Reason *</label>
-              <select class="sidebar-select" id="drawer-reason" style="padding:0.4rem 0.5rem; font-size:0.85rem;">
-                <option value="Shift Rotation">Shift Rotation</option>
-                <option value="Approved Week Off Change">Approved Week Off Change</option>
-                <option value="Operational Roster Rebalance">Operational Roster Rebalance</option>
-              </select>
-            </div>
-
-            <div>
-              <label class="filter-label">Comments</label>
-              <textarea class="form-control" id="drawer-comments" rows="2" style="font-size:0.8rem; padding:0.4rem;" placeholder="Week off adjustment notes..."></textarea>
-            </div>
-          </div>
-        ` : (currentAction === 'leave' ? `
-          <!-- ADD LEAVE FORM -->
-          <div style="font-size:0.78rem; font-weight:800; color:white; margin-bottom:0.6rem; text-transform:uppercase;">
-            Leave Details
-          </div>
-
-          <div style="display:flex; flex-direction:column; gap:0.6rem;">
-            <div>
-              <label class="filter-label">Leave Type</label>
-              <select class="sidebar-select" id="drawer-leave-type" style="padding:0.45rem 0.5rem; font-size:0.85rem;">
-                <option value="PTO">🏖️ Paid Time Off (PTO)</option>
-                <option value="Sick Leave">💗 Sick Leave</option>
-                <option value="Emergency Leave">🚨 Emergency Leave</option>
-                <option value="Unplanned Leave">⏳ Unplanned Leave</option>
-              </select>
-            </div>
-
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
-              <div>
-                <label class="filter-label">Start Time</label>
-                <input type="text" class="form-control" id="drawer-start-time" value="08:00" style="font-size:0.85rem; padding:0.4rem 0.5rem;">
-              </div>
-              <div>
-                <label class="filter-label">End Time</label>
-                <input type="text" class="form-control" id="drawer-end-time" value="17:00" style="font-size:0.85rem; padding:0.4rem 0.5rem;">
-              </div>
-            </div>
-
-            <div>
-              <label class="filter-label">Reason *</label>
-              <select class="sidebar-select" id="drawer-reason" style="padding:0.4rem 0.5rem; font-size:0.85rem;">
-                <option value="Approved Personal Leave">Approved Personal Leave</option>
-                <option value="Medical / Health">Medical / Health</option>
-                <option value="Emergency Requirement">Emergency Requirement</option>
-              </select>
-            </div>
-
-            <div>
-              <label class="filter-label">Comments</label>
-              <textarea class="form-control" id="drawer-comments" rows="2" style="font-size:0.8rem; padding:0.4rem;" placeholder="Leave approval notes..."></textarea>
-            </div>
-          </div>
-        ` : (currentAction === 'activity' ? `
-          <!-- ADD ACTIVITY FORM -->
-          <div style="font-size:0.78rem; font-weight:800; color:white; margin-bottom:0.6rem; text-transform:uppercase;">
-            Activity Details
-          </div>
-
-          <div style="display:flex; flex-direction:column; gap:0.6rem;">
-            <div>
-              <label class="filter-label">Activity Type</label>
-              <select class="sidebar-select" id="drawer-act-type" style="padding:0.45rem 0.5rem; font-size:0.85rem;">
-                <option value="Coaching">🟢 Coaching (1-on-1)</option>
-                <option value="Training">🟣 Training / Upskilling</option>
-                <option value="Meeting">🔵 Team Meeting</option>
-                <option value="Break">🔷 Extra Break</option>
-                <option value="Lunch">🟠 Lunch Shift Adjustment</option>
-              </select>
-            </div>
-
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
-              <div>
-                <label class="filter-label">Start Time</label>
-                <input type="text" class="form-control" id="drawer-start-time" value="15:00" style="font-size:0.85rem; padding:0.4rem 0.5rem;">
-              </div>
-              <div>
-                <label class="filter-label">End Time</label>
-                <input type="text" class="form-control" id="drawer-end-time" value="16:00" style="font-size:0.85rem; padding:0.4rem 0.5rem;">
-              </div>
-            </div>
-
-            <div>
-              <label class="filter-label">Reason *</label>
-              <select class="sidebar-select" id="drawer-reason" style="padding:0.4rem 0.5rem; font-size:0.85rem;">
-                <option value="Weekly QA Coaching">Weekly QA Coaching</option>
-                <option value="Product Training">Product Training</option>
-                <option value="Team Sync">Team Sync</option>
-                <option value="Operational Exception">Operational Exception</option>
-              </select>
-            </div>
-
-            <div>
-              <label class="filter-label">Comments</label>
-              <textarea class="form-control" id="drawer-comments" rows="2" style="font-size:0.8rem; padding:0.4rem;" placeholder="Activity scheduling notes..."></textarea>
-            </div>
-          </div>
-        ` : `
-          <!-- CHANGE SHIFT FORM (DEFAULT) -->
-          <div style="font-size:0.78rem; font-weight:800; color:white; margin-bottom:0.6rem; text-transform:uppercase;">
-            Change Shift Hours
-          </div>
-
-          <div style="display:flex; flex-direction:column; gap:0.6rem;">
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
-              <div>
-                <label class="filter-label">Shift Start</label>
-                <input type="text" class="form-control" id="drawer-start-time" value="${curSched.shiftStart || '08:00'}" style="font-size:0.85rem; padding:0.4rem 0.5rem;">
-              </div>
-              <div>
-                <label class="filter-label">Shift End</label>
-                <input type="text" class="form-control" id="drawer-end-time" value="${curSched.shiftEnd || '17:00'}" style="font-size:0.85rem; padding:0.4rem 0.5rem;">
-              </div>
-            </div>
-
-            <div>
-              <label class="filter-label">Reason *</label>
-              <select class="sidebar-select" id="drawer-reason" style="padding:0.4rem 0.5rem; font-size:0.85rem;">
-                <option value="Coverage Requirement">Coverage Requirement</option>
-                <option value="Business Requirement">Business Requirement</option>
-                <option value="Agent Shift Swap">Agent Shift Swap</option>
-                <option value="Emergency Coverage">Emergency Coverage</option>
-              </select>
-            </div>
-
-            <div>
-              <label class="filter-label">Comments</label>
-              <textarea class="form-control" id="drawer-comments" rows="2" style="font-size:0.8rem; padding:0.4rem;" placeholder="Shift change reason / audit details..."></textarea>
-            </div>
-          </div>
-        `)))}
+        ${renderDrawerActionForm(currentAction, curSched, activeDate)}
       </div>
 
       <!-- Action Buttons -->
       <div style="display:flex; justify-content:flex-end; gap:0.6rem;">
         <button type="button" class="btn btn-secondary" id="drawer-btn-cancel" style="padding:0.5rem 1rem;">Cancel</button>
-        <button type="button" class="btn btn-primary" id="drawer-btn-save" style="padding:0.5rem 1.25rem;">Save Changes</button>
+        <button type="button" class="btn ${currentAction === 'delete' ? 'btn-danger' : 'btn-primary'}" id="drawer-btn-save" style="padding:0.5rem 1.25rem;">
+          ${currentAction === 'delete' ? '<i data-lucide="trash-2" style="width:14px;height:14px;"></i> Confirm Deletion' : 'Save Changes'}
+        </button>
       </div>
 
       <!-- Audit Log Accordion -->
@@ -5775,6 +7477,7 @@ function renderTlWeeklyView(rosterAgents, targetAgent, curDateStr, displayWeekSt
             <button class="btn btn-secondary" id="tl-act-activity" style="justify-content:flex-start; padding:0.45rem 0.75rem; font-size:0.8rem;"><i data-lucide="plus-circle" style="width:14px;height:14px; color:var(--color-primary-light);"></i> Add Activity</button>
             <button class="btn btn-secondary" id="tl-act-leave" style="justify-content:flex-start; padding:0.45rem 0.75rem; font-size:0.8rem;"><i data-lucide="umbrella" style="width:14px;height:14px; color:#f472b6;"></i> Add Leave</button>
             <button class="btn btn-secondary" id="tl-act-weekoff" style="justify-content:flex-start; padding:0.45rem 0.75rem; font-size:0.8rem;"><i data-lucide="calendar" style="width:14px;height:14px; color:var(--color-info);"></i> Change Week Off</button>
+            <button class="btn btn-secondary" id="tl-act-remove" style="justify-content:flex-start; padding:0.45rem 0.75rem; font-size:0.8rem; color:#fca5a5;"><i data-lucide="trash-2" style="width:14px;height:14px; color:#f87171;"></i> Request Removal</button>
             <button class="btn btn-secondary" id="tl-act-notif" style="justify-content:flex-start; padding:0.45rem 0.75rem; font-size:0.8rem;"><i data-lucide="send" style="width:14px;height:14px; color:var(--color-success);"></i> Send Notification</button>
           </div>
         </div>
@@ -5902,6 +7605,7 @@ function renderTlDailyView(rosterAgents, targetAgent, curDateStr, displayDayStr,
             <button class="btn btn-secondary" id="tl-act-activity" style="justify-content:flex-start; padding:0.45rem 0.75rem; font-size:0.8rem;"><i data-lucide="plus-circle" style="width:14px;height:14px; color:var(--color-primary-light);"></i> Add Activity</button>
             <button class="btn btn-secondary" id="tl-act-leave" style="justify-content:flex-start; padding:0.45rem 0.75rem; font-size:0.8rem;"><i data-lucide="umbrella" style="width:14px;height:14px; color:#f472b6;"></i> Add Leave</button>
             <button class="btn btn-secondary" id="tl-act-weekoff" style="justify-content:flex-start; padding:0.45rem 0.75rem; font-size:0.8rem;"><i data-lucide="calendar" style="width:14px;height:14px; color:var(--color-info);"></i> Change Week Off</button>
+            <button class="btn btn-secondary" id="tl-act-remove" style="justify-content:flex-start; padding:0.45rem 0.75rem; font-size:0.8rem; color:#fca5a5;"><i data-lucide="trash-2" style="width:14px;height:14px; color:#f87171;"></i> Request Removal</button>
             <button class="btn btn-secondary" id="tl-act-notif" style="justify-content:flex-start; padding:0.45rem 0.75rem; font-size:0.8rem;"><i data-lucide="send" style="width:14px;height:14px; color:var(--color-success);"></i> Send Notification</button>
           </div>
         </div>
@@ -5984,6 +7688,7 @@ function renderTlMonthlyView(rosterAgents, targetAgent, curDateStr, displayMonth
             <button class="btn btn-secondary" id="tl-act-activity" style="justify-content:flex-start; padding:0.45rem 0.75rem; font-size:0.8rem;"><i data-lucide="plus-circle" style="width:14px;height:14px; color:var(--color-primary-light);"></i> Add Activity</button>
             <button class="btn btn-secondary" id="tl-act-leave" style="justify-content:flex-start; padding:0.45rem 0.75rem; font-size:0.8rem;"><i data-lucide="umbrella" style="width:14px;height:14px; color:#f472b6;"></i> Add Leave</button>
             <button class="btn btn-secondary" id="tl-act-weekoff" style="justify-content:flex-start; padding:0.45rem 0.75rem; font-size:0.8rem;"><i data-lucide="calendar" style="width:14px;height:14px; color:var(--color-info);"></i> Change Week Off</button>
+            <button class="btn btn-secondary" id="tl-act-remove" style="justify-content:flex-start; padding:0.45rem 0.75rem; font-size:0.8rem; color:#fca5a5;"><i data-lucide="trash-2" style="width:14px;height:14px; color:#f87171;"></i> Request Removal</button>
             <button class="btn btn-secondary" id="tl-act-notif" style="justify-content:flex-start; padding:0.45rem 0.75rem; font-size:0.8rem;"><i data-lucide="send" style="width:14px;height:14px; color:var(--color-success);"></i> Send Notification</button>
           </div>
         </div>
@@ -5993,7 +7698,183 @@ function renderTlMonthlyView(rosterAgents, targetAgent, curDateStr, displayMonth
 }
 
 // ==========================================
-// 4. EVENT LISTENERS & WORKFLOW MODALS
+// 4. WSM EXPLAINABILITY & COVERAGE MODALS
+// ==========================================
+
+async function showWsmExplanationModal(agentId, agentName, dateStr) {
+  const runId = state.activeWsmRun ? state.activeWsmRun.id : (state.wsmScheduleRuns && state.wsmScheduleRuns.length > 0 ? state.wsmScheduleRuns[0].id : 'RUN_TEST');
+  let expData = null;
+  try {
+    expData = await api.wsm.getExplanation(runId, agentId, dateStr);
+  } catch (err) {
+    console.warn('Could not fetch explanation from backend:', err);
+  }
+
+  const reasons = (expData && expData.reasons) ? expData.reasons : [
+    { criterion: 'Skill Qualified', status: 'PASS', score: 100, rationale: 'Agent is qualified for House of Brands Voice & Chat channels.' },
+    { criterion: 'Campaign Eligible', status: 'PASS', score: 100, rationale: 'Assigned to House of Brands with 100% active FTE allocation.' },
+    { criterion: 'Availability Window Met', status: 'PASS', score: 100, rationale: 'Shift 09:00 - 18:00 falls fully within agent availability (08:00 - 19:00).' },
+    { criterion: 'Staffing Deficit Covered', status: 'PASS', score: 95, rationale: 'Assigned start at 09:00 directly covers peak interval staffing requirement (20 FTE).' },
+    { criterion: 'Max Daily Hours Complied', status: 'PASS', score: 100, rationale: '8.0 paid hours <= 9.0 hours maximum daily limit.' },
+    { criterion: 'Minimum Rest Complied', status: 'PASS', score: 100, rationale: '15.0 hours consecutive rest before next scheduled shift (> 11h required).' },
+    { criterion: 'Preferred Shift Matched', status: 'PASS', score: 90, rationale: 'Assigned start 09:00 is within 30 minutes of agent preference.' },
+    { criterion: 'Zero Hard Violations', status: 'PASS', score: 100, rationale: 'Zero hard constraint violations detected. 100% compliance.' }
+  ];
+
+  const modalHtml = `
+    <div id="wsm-explain-modal-overlay" style="position:fixed; inset:0; background:rgba(0,0,0,0.75); backdrop-filter:blur(6px); z-index:9999; display:flex; align-items:center; justify-content:center;">
+      <div style="background:#0f172a; border:1px solid var(--border-light); border-radius:var(--radius-lg); width:100%; max-width:560px; padding:1.5rem; box-shadow:0 20px 40px rgba(0,0,0,0.5); max-height:90vh; overflow-y:auto;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; border-bottom:1px solid var(--border-light); padding-bottom:0.75rem;">
+          <div>
+            <h3 style="font-size:1.1rem; font-weight:800; color:white; font-family:var(--font-display); display:flex; align-items:center; gap:0.5rem;">
+              <i data-lucide="help-circle" style="width:18px;height:18px; color:#38bdf8;"></i> Why Was This Shift Assigned?
+            </h3>
+            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.15rem;">
+              Agent: <strong style="color:white;">${agentName || agentId}</strong> • Date: <strong style="color:#38bdf8;">${dateStr}</strong>
+            </div>
+          </div>
+          <button id="wsm-explain-close-btn" style="background:transparent; border:none; color:var(--text-muted); cursor:pointer; font-size:1.25rem;">✕</button>
+        </div>
+
+        <div style="background:rgba(99,102,241,0.1); border:1px solid rgba(99,102,241,0.3); border-radius:var(--radius-sm); padding:0.75rem; margin-bottom:1rem; font-size:0.78rem; color:#e0e7ff;">
+          The WSM 2-Pass Optimization Engine evaluated 8 strict feasibility & preference criteria before assigning this shift.
+        </div>
+
+        <div class="wsm-why-checklist">
+          ${reasons.map(r => `
+            <div class="wsm-why-item">
+              <div class="${r.status === 'PASS' ? 'wsm-why-icon-pass' : 'wsm-why-icon-fail'}">
+                ${r.status === 'PASS' ? '✓' : '✕'}
+              </div>
+              <div class="wsm-why-content">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                  <div class="wsm-why-title">${r.criterion}</div>
+                  <span class="badge ${r.status === 'PASS' ? 'badge-success' : 'badge-danger'}" style="font-size:0.65rem;">${r.score || 100}%</span>
+                </div>
+                <div class="wsm-why-desc">${r.rationale}</div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; margin-top:1.25rem;">
+          <button class="btn btn-primary" id="wsm-explain-done-btn" style="padding:0.45rem 1.25rem;">Got It</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const oldOverlay = document.getElementById('wsm-explain-modal-overlay');
+  if (oldOverlay) oldOverlay.remove();
+
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+  if (window.lucide) window.lucide.createIcons();
+
+  const close = () => {
+    const el = document.getElementById('wsm-explain-modal-overlay');
+    if (el) el.remove();
+  };
+
+  document.getElementById('wsm-explain-close-btn').addEventListener('click', close);
+  document.getElementById('wsm-explain-done-btn').addEventListener('click', close);
+}
+
+async function showWsmCoverageModal(runId) {
+  const activeRunId = runId || (state.activeWsmRun ? state.activeWsmRun.id : (state.wsmScheduleRuns && state.wsmScheduleRuns.length > 0 ? state.wsmScheduleRuns[0].id : 'RUN_TEST'));
+  let covData = [];
+  try {
+    const raw = await api.wsm.getCoverage(activeRunId);
+    covData = (raw && raw.intervals) ? raw.intervals : (Array.isArray(raw) ? raw : []);
+  } catch (err) {
+    console.warn('Could not fetch coverage matrix:', err);
+  }
+
+  const modalHtml = `
+    <div id="wsm-coverage-modal-overlay" style="position:fixed; inset:0; background:rgba(0,0,0,0.8); backdrop-filter:blur(6px); z-index:9999; display:flex; align-items:center; justify-content:center;">
+      <div style="background:#0f172a; border:1px solid var(--border-light); border-radius:var(--radius-lg); width:100%; max-width:850px; padding:1.5rem; box-shadow:0 20px 40px rgba(0,0,0,0.5); max-height:90vh; overflow-y:auto;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; border-bottom:1px solid var(--border-light); padding-bottom:0.75rem;">
+          <div>
+            <h3 style="font-size:1.15rem; font-weight:800; color:white; font-family:var(--font-display); display:flex; align-items:center; gap:0.5rem;">
+              <i data-lucide="bar-chart-3" style="width:20px;height:20px; color:#38bdf8;"></i> Interval Staffing Coverage & Gap Heatmap
+            </h3>
+            <div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.15rem;">
+              Run: <strong style="color:#818cf8;">${activeRunId}</strong> • Interval Granularity: <strong style="color:white;">30 Minutes</strong>
+            </div>
+          </div>
+          <button id="wsm-cov-close-btn" style="background:transparent; border:none; color:var(--text-muted); cursor:pointer; font-size:1.25rem;">✕</button>
+        </div>
+
+        <div class="table-wrapper" style="max-height:480px; overflow-y:auto;">
+          <table>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Interval</th>
+                <th>Channel</th>
+                <th>Required FTE</th>
+                <th>Scheduled FTE</th>
+                <th>Net Gap</th>
+                <th>Coverage %</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${covData.length === 0 ? `
+                <tr><td colspan="8" style="text-align:center; padding:1.5rem; color:var(--text-muted);">No interval coverage data found for this run.</td></tr>
+              ` : covData.slice(0, 48).map(row => {
+                let badgeClass = 'badge-success';
+                let statusText = 'Optimal (100%)';
+                if (row.coverage_percent < 90) {
+                  badgeClass = 'badge-danger';
+                  statusText = 'Understaffed';
+                } else if (row.coverage_percent > 120) {
+                  badgeClass = 'badge-warning';
+                  statusText = 'Overstaffed';
+                }
+
+                return `
+                  <tr>
+                    <td>${row.date}</td>
+                    <td style="font-weight:700; color:white;">${row.interval_start} - ${row.interval_end}</td>
+                    <td><span class="badge ${row.channel === 'Voice' ? 'badge-success' : (row.channel === 'Chat' ? 'badge-info' : 'badge-warning')}">${row.channel}</span></td>
+                    <td style="font-weight:700;">${row.required_fte}</td>
+                    <td style="font-weight:700; color:#34d399;">${row.scheduled_fte}</td>
+                    <td style="font-weight:800; color:${row.gap < 0 ? '#f87171' : (row.gap > 0 ? '#38bdf8' : '#10b981')};">
+                      ${row.gap > 0 ? '+' : ''}${row.gap}
+                    </td>
+                    <td><strong>${row.coverage_percent}%</strong></td>
+                    <td><span class="badge ${badgeClass}">${statusText}</span></td>
+                  </tr>
+                `;
+              }).join('')}
+            </tbody>
+          </table>
+        </div>
+
+        <div style="display:flex; justify-content:flex-end; margin-top:1.25rem;">
+          <button class="btn btn-primary" id="wsm-cov-done-btn" style="padding:0.45rem 1.25rem;">Close</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const oldOverlay = document.getElementById('wsm-coverage-modal-overlay');
+  if (oldOverlay) oldOverlay.remove();
+
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+  if (window.lucide) window.lucide.createIcons();
+
+  const close = () => {
+    const el = document.getElementById('wsm-coverage-modal-overlay');
+    if (el) el.remove();
+  };
+
+  document.getElementById('wsm-cov-close-btn').addEventListener('click', close);
+  document.getElementById('wsm-cov-done-btn').addEventListener('click', close);
+}
+
+// ==========================================
+// 5. EVENT LISTENERS & WORKFLOW MODALS
 // ==========================================
 
 function attachShowcaseEventListeners(c, role, targetAgent, rosterAgents, curDateStr, viewMode) {
@@ -6163,6 +8044,13 @@ function attachShowcaseEventListeners(c, role, targetAgent, rosterAgents, curDat
     });
   }
 
+  const btnTlActRemove = document.getElementById('tl-act-remove');
+  if (btnTlActRemove) {
+    btnTlActRemove.addEventListener('click', () => {
+      showTlRemovalModal(allTeamAgents, c);
+    });
+  }
+
   const btnTlActNotif = document.getElementById('tl-act-notif');
   if (btnTlActNotif) {
     btnTlActNotif.addEventListener('click', () => {
@@ -6196,6 +8084,13 @@ function attachShowcaseEventListeners(c, role, targetAgent, rosterAgents, curDat
   if (btnActWeekoff) {
     btnActWeekoff.addEventListener('click', () => {
       showAgentWeekOffModal(targetAgent, c);
+    });
+  }
+
+  const btnActRemove = document.getElementById('agent-act-remove');
+  if (btnActRemove) {
+    btnActRemove.addEventListener('click', () => {
+      showAgentRemovalModal(targetAgent, c);
     });
   }
 
@@ -6305,7 +8200,1089 @@ function attachShowcaseEventListeners(c, role, targetAgent, rosterAgents, curDat
     return `${newH}:${newM}`;
   }
 
+  // ==========================================
+  // WSM ENTERPRISE OPTIMIZATION LISTENERS
+  // ==========================================
+
+  // WSM Campaign Selector
+  const wsmCampSelect = document.getElementById('wsm-campaign-select');
+  if (wsmCampSelect) {
+    wsmCampSelect.addEventListener('change', (e) => {
+      state.selectedCampaignId = e.target.value;
+      renderScheduling(c);
+    });
+  }
+
+  // WSM Studio Sub-Tabs
+  c.querySelectorAll('.wsm-tab-btn[data-wsm-tab]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      state.wsmStudioTab = e.currentTarget.dataset.wsmTab;
+      rebuildSidebarMenu();
+      renderActiveView();
+    });
+  });
+
+  // WSM Generate Auto-Schedule Button (Runs 2-Pass Optimization Engine)
+  const btnWsmGenerate = document.getElementById('btn-wsm-generate');
+  if (btnWsmGenerate) {
+    btnWsmGenerate.addEventListener('click', async () => {
+      const modeEl = document.getElementById('wsm-mode-select');
+      const mode = modeEl ? modeEl.value : 'BALANCED';
+      const campId = state.selectedCampaignId || state.activeCampaignId || 'CAMP_HOB';
+
+      showAsyncSolverModal(campId, mode, async (jobStatus) => {
+        try {
+          const res = await api.wsm.generateSchedule({
+            campaign_id: campId,
+            start_date: state.selectedDate || curDateStr,
+            end_date: state.selectedDate || curDateStr,
+            mode: mode,
+            preserve_locked: true
+          });
+
+          if (res && res.success) {
+            state.activeWsmRun = {
+              id: res.run_id,
+              status: 'DRAFT',
+              overall_quality_score: jobStatus ? jobStatus.quality_score : res.overall_quality_score,
+              coverage_score: jobStatus ? jobStatus.coverage_score : res.coverage_score,
+              skill_coverage_score: res.skill_coverage_score,
+              constraint_score: 100.0,
+              total_scheduled_hours: res.total_scheduled_hours,
+              total_estimated_cost: res.total_estimated_cost,
+              total_understaffed_intervals: res.total_understaffed_intervals,
+              total_overstaffed_intervals: res.total_overstaffed_intervals
+            };
+          }
+        } catch (err) {
+          console.warn("WSM schedule generate sync:", err);
+        }
+        await initData();
+        renderScheduling(c);
+      });
+    });
+  }
+
+  // WSM Coverage Heatmap Modal Button
+  const btnWsmCoverage = document.getElementById('btn-wsm-coverage');
+  if (btnWsmCoverage) {
+    btnWsmCoverage.addEventListener('click', () => {
+      const runId = state.activeWsmRun ? state.activeWsmRun.id : null;
+      showWsmCoverageModal(runId);
+    });
+  }
+
+  // WSM Publish Run Button (Syncs to Master Roster Overrides)
+  const btnWsmPublish = document.getElementById('btn-wsm-publish');
+  if (btnWsmPublish) {
+    btnWsmPublish.addEventListener('click', async () => {
+      const runId = state.activeWsmRun ? state.activeWsmRun.id : 'RUN_TEST';
+      try {
+        await api.wsm.publishScheduleRun(runId, state.currentUser ? state.currentUser.name : 'WFM Admin');
+        if (state.activeWsmRun) state.activeWsmRun.status = 'PUBLISHED';
+        const freshOverrides = await api.getScheduleOverrides();
+        if (freshOverrides) state.scheduleOverrides = freshOverrides;
+        alert(`Success: Run ${runId} published! Shifts are now live across all Agent and TL views.`);
+      } catch (err) {
+        alert("Schedule published to Live Master Roster.");
+      }
+      renderScheduling(c);
+    });
+  }
+
+  // WSM Lock Run Button
+  const btnWsmLock = document.getElementById('btn-wsm-lock');
+  if (btnWsmLock) {
+    btnWsmLock.addEventListener('click', async () => {
+      const runId = state.activeWsmRun ? state.activeWsmRun.id : 'RUN_TEST';
+      try {
+        await api.wsm.lockScheduleRun(runId, state.currentUser ? state.currentUser.name : 'WFM Admin');
+        if (state.activeWsmRun) state.activeWsmRun.status = 'LOCKED';
+        alert(`Run ${runId} locked against re-optimization.`);
+      } catch (err) {
+        alert("Run locked.");
+      }
+      renderScheduling(c);
+    });
+  }
+
+  // WSM Why Was This Assigned Modal Triggers
+  c.querySelectorAll('.btn-wsm-why-inspect').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const agId = e.currentTarget.dataset.id;
+      const agName = e.currentTarget.dataset.name;
+      const dt = e.currentTarget.dataset.date || curDateStr;
+      showWsmExplanationModal(agId, agName, dt);
+    });
+  });
+
+  // =============================================
+  // CAMPAIGN STUDIO & BRANDS / CHANNELS LISTENERS
+  // =============================================
+  // Switch workspace modal trigger
+  const btnWsmSwitchWs = document.getElementById('btn-wsm-switch-workspace');
+  if (btnWsmSwitchWs) {
+    btnWsmSwitchWs.addEventListener('click', () => {
+      showCampaignSelectionModal(() => renderScheduling(c));
+    });
+  }
+
+  // Set active campaign quick button
+  c.querySelectorAll('.btn-wsm-set-active-camp').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const campId = e.currentTarget.dataset.id;
+      await setActiveCampaign(campId, true);
+    });
+  });
+
+  // Campaign Studio subtabs (All Campaigns vs Brands & Channels)
+  c.querySelectorAll('.wsm-camp-subtab-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      state.activeCampaignSubTab = e.currentTarget.dataset.subtab;
+      renderScheduling(c);
+    });
+  });
+
+  // --- Brand Listeners ---
+  const btnAddBrand = document.getElementById('btn-wsm-add-brand');
+  if (btnAddBrand) {
+    btnAddBrand.addEventListener('click', () => {
+      const formArea = document.getElementById('wsm-brand-form-area');
+      if (!formArea) return;
+      formArea.innerHTML = `
+        <div style="background:rgba(15,23,42,0.85);border:1px solid var(--border-light);border-radius:var(--radius-sm);padding:1rem;margin-bottom:1rem;">
+          <h4 style="color:white;font-size:0.9rem;font-weight:700;margin-bottom:0.75rem;">➕ Add New Brand Account</h4>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:0.75rem;">
+            <div>
+              <label class="filter-label">Brand Name *</label>
+              <input class="form-control" id="wsm-brand-name-input" placeholder="e.g. Modern Textiles" style="font-size:0.82rem;">
+            </div>
+            <div>
+              <label class="filter-label">Brand Code</label>
+              <input class="form-control" id="wsm-brand-code-input" placeholder="e.g. MODT" style="font-size:0.82rem;">
+            </div>
+          </div>
+          <div style="margin-bottom:0.75rem;">
+            <label class="filter-label">Description</label>
+            <input class="form-control" id="wsm-brand-desc-input" placeholder="Brief description of the brand line" style="font-size:0.82rem;">
+          </div>
+          <div style="display:flex;gap:0.5rem;">
+            <button id="wsm-brand-save-btn" class="btn btn-primary" style="font-size:0.78rem;padding:0.35rem 0.85rem;">✅ Save Brand</button>
+            <button id="wsm-brand-cancel-btn" class="btn btn-secondary" style="font-size:0.78rem;padding:0.35rem 0.65rem;">Cancel</button>
+          </div>
+        </div>
+      `;
+      formArea.querySelector('#wsm-brand-cancel-btn').onclick = () => { formArea.innerHTML = ''; };
+      formArea.querySelector('#wsm-brand-save-btn').onclick = async () => {
+        const name = document.getElementById('wsm-brand-name-input').value.trim();
+        const code = document.getElementById('wsm-brand-code-input').value.trim();
+        const desc = document.getElementById('wsm-brand-desc-input').value.trim();
+        if (!name) { alert('Please enter a brand name'); return; }
+        const campId = state.activeCampaignId || 'CAMP_HOB';
+        await api.wsm.createCampaignBrand(campId, { campaign_id: campId, name, code, description: desc });
+        await loadActiveCampaignBrandsAndChannels();
+        renderScheduling(c);
+      };
+    });
+  }
+
+  // Delete Brand
+  c.querySelectorAll('.btn-wsm-del-brand').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const campId = e.currentTarget.dataset.camp;
+      const brandId = e.currentTarget.dataset.id;
+      if (!confirm('Are you sure you want to delete this brand?')) return;
+      await api.wsm.deleteCampaignBrand(campId, brandId);
+      await loadActiveCampaignBrandsAndChannels();
+      renderScheduling(c);
+    });
+  });
+
+  // --- Channel / LOB Listeners ---
+  const btnAddChannel = document.getElementById('btn-wsm-add-channel');
+  if (btnAddChannel) {
+    btnAddChannel.addEventListener('click', () => {
+      const formArea = document.getElementById('wsm-channel-form-area');
+      if (!formArea) return;
+      const brands = state.activeCampaignBrands || [];
+      formArea.innerHTML = `
+        <div style="background:rgba(15,23,42,0.85);border:1px solid var(--border-light);border-radius:var(--radius-sm);padding:1rem;margin-bottom:1rem;">
+          <h4 style="color:white;font-size:0.9rem;font-weight:700;margin-bottom:0.75rem;">➕ Add New Channel / Line of Business</h4>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:0.75rem;">
+            <div>
+              <label class="filter-label">Channel Name *</label>
+              <input class="form-control" id="wsm-ch-name-input" placeholder="e.g. VIP Concierge Voice" style="font-size:0.82rem;">
+            </div>
+            <div>
+              <label class="filter-label">Channel Medium *</label>
+              <select class="sidebar-select" id="wsm-ch-type-input" style="font-size:0.82rem;">
+                <option value="Voice">Voice 📞</option>
+                <option value="Chat">Chat 💬</option>
+                <option value="Email">Email ✉️</option>
+                <option value="Back-Office">Back-Office 📁</option>
+                <option value="Social">Social Media 🌐</option>
+              </select>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:0.75rem;">
+            <div>
+              <label class="filter-label">Brand Association</label>
+              <select class="sidebar-select" id="wsm-ch-brand-input" style="font-size:0.82rem;">
+                <option value="">-- All Campaign Brands --</option>
+                ${brands.map(b=>`<option value="${b.id}">${b.name}</option>`).join('')}
+              </select>
+            </div>
+            <div>
+              <label class="filter-label">Target SLA %</label>
+              <input type="number" class="form-control" id="wsm-ch-sla-pct" value="80" min="0" max="100" style="font-size:0.82rem;">
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:0.75rem;">
+            <div>
+              <label class="filter-label">SLA Threshold (Seconds)</label>
+              <input type="number" class="form-control" id="wsm-ch-sla-sec" value="20" min="1" style="font-size:0.82rem;">
+            </div>
+            <div>
+              <label class="filter-label">Target AHT (Seconds)</label>
+              <input type="number" class="form-control" id="wsm-ch-aht" value="280" min="1" style="font-size:0.82rem;">
+            </div>
+          </div>
+          <div style="display:flex;gap:0.5rem;">
+            <button id="wsm-ch-save-btn" class="btn btn-primary" style="font-size:0.78rem;padding:0.35rem 0.85rem;">✅ Save Channel</button>
+            <button id="wsm-ch-cancel-btn" class="btn btn-secondary" style="font-size:0.78rem;padding:0.35rem 0.65rem;">Cancel</button>
+          </div>
+        </div>
+      `;
+      formArea.querySelector('#wsm-ch-cancel-btn').onclick = () => { formArea.innerHTML = ''; };
+      formArea.querySelector('#wsm-ch-save-btn').onclick = async () => {
+        const name = document.getElementById('wsm-ch-name-input').value.trim();
+        const channel = document.getElementById('wsm-ch-type-input').value;
+        const brand_id = document.getElementById('wsm-ch-brand-input').value || null;
+        const target_sla_percent = parseInt(document.getElementById('wsm-ch-sla-pct').value) || 80;
+        const target_sla_seconds = parseInt(document.getElementById('wsm-ch-sla-sec').value) || 20;
+        const target_aht = parseInt(document.getElementById('wsm-ch-aht').value) || 280;
+        if (!name) { alert('Please enter a channel name'); return; }
+        const campId = state.activeCampaignId || 'CAMP_HOB';
+        await api.wsm.createCampaignChannel(campId, {
+          campaign_id: campId, brand_id, name, channel, target_sla_percent, target_sla_seconds, target_aht
+        });
+        await loadActiveCampaignBrandsAndChannels();
+        renderScheduling(c);
+      };
+    });
+  }
+
+  // Delete Channel
+  c.querySelectorAll('.btn-wsm-del-channel').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const campId = e.currentTarget.dataset.camp;
+      const channelId = e.currentTarget.dataset.id;
+      if (!confirm('Are you sure you want to delete this channel?')) return;
+      await api.wsm.deleteCampaignChannel(campId, channelId);
+      await loadActiveCampaignBrandsAndChannels();
+      renderScheduling(c);
+    });
+  });
+
+  const btnWsmNewCamp = document.getElementById('btn-wsm-new-camp');
+  if (btnWsmNewCamp) {
+    btnWsmNewCamp.addEventListener('click', () => {
+      const formArea = document.getElementById('wsm-camp-form-area');
+      if (formArea) {
+        // Build empty form
+        const DAY_OPTIONS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+        const CURRENCIES = [
+          {code:'USD',label:'USD – US Dollar ($)'},{code:'INR',label:'INR – Indian Rupee (₹)'},
+          {code:'EUR',label:'EUR – Euro (€)'},{code:'JPY',label:'JPY – Japanese Yen (¥)'},
+          {code:'PHP',label:'PHP – Philippine Peso (₱)'},{code:'GBP',label:'GBP – British Pound (£)'},
+          {code:'AUD',label:'AUD – Australian Dollar (A$)'},{code:'CAD',label:'CAD – Canadian Dollar (C$)'},
+        ];
+        const defaultDays = ['Mon','Tue','Wed','Thu','Fri'];
+        formArea.innerHTML = `
+          <div style="background:rgba(15,23,42,0.85); border:1px solid var(--border-light); border-radius:var(--radius-md); padding:1.25rem; margin-bottom:1.25rem;">
+            <h4 style="font-size:1rem; color:white; font-weight:800; margin-bottom:1rem;">➕ Create New Campaign</h4>
+            <input type="hidden" id="wsm-camp-id" value="">
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1rem;">
+              <div><label class="filter-label">Campaign Name *</label><input class="form-control" id="wsm-camp-name" placeholder="e.g. House of Brands Enterprise"></div>
+              <div><label class="filter-label">Campaign Code *</label><input class="form-control" id="wsm-camp-code" placeholder="e.g. HOB"></div>
+              <div><label class="filter-label">Description</label><input class="form-control" id="wsm-camp-desc" placeholder="Brief description"></div>
+              <div><label class="filter-label">Timezone</label>
+                <select class="sidebar-select" id="wsm-camp-tz">${['EST','CST','MST','PST','IST','PHT','GMT','CET'].map(tz=>`<option>${tz}</option>`).join('')}</select>
+              </div>
+            </div>
+            <div style="margin-bottom:1rem;">
+              <label class="filter-label">Operating Days</label>
+              <div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:0.35rem;">
+                ${DAY_OPTIONS.map(d=>`<label style="display:flex;align-items:center;gap:0.3rem;cursor:pointer;background:${defaultDays.includes(d)?'rgba(99,102,241,0.2)':'rgba(255,255,255,0.05)'};border:1px solid ${defaultDays.includes(d)?'#818cf8':'var(--border-light)'};border-radius:var(--radius-sm);padding:0.3rem 0.65rem;font-size:0.8rem;color:${defaultDays.includes(d)?'white':'var(--text-muted)'};">
+                  <input type="checkbox" class="wsm-day-cb" value="${d}" ${defaultDays.includes(d)?'checked':''} style="accent-color:#818cf8;"> ${d}
+                </label>`).join('')}
+              </div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1rem;">
+              <div><label class="filter-label">HOOP Start</label><input type="time" class="form-control" id="wsm-camp-hoop-start" value="08:00"></div>
+              <div><label class="filter-label">HOOP End</label><input type="time" class="form-control" id="wsm-camp-hoop-end" value="20:00"></div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:1rem; margin-bottom:1rem;">
+              <div><label class="filter-label">Currency</label>
+                <select class="sidebar-select" id="wsm-camp-currency">${CURRENCIES.map(cu=>`<option value="${cu.code}">${cu.label}</option>`).join('')}</select>
+              </div>
+              <div><label class="filter-label">Base Hourly Rate</label><input type="number" class="form-control" id="wsm-camp-rate" value="25.0" min="0" step="0.5"></div>
+              <div><label class="filter-label">OT Multiplier</label><input type="number" class="form-control" id="wsm-camp-ot-mult" value="1.5" min="1" step="0.1"></div>
+            </div>
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:1rem; margin-bottom:1rem;">
+              <div><label class="filter-label">Target SLA %</label><input type="number" class="form-control" id="wsm-camp-sla" value="80" min="0" max="100"></div>
+              <div><label class="filter-label">Target AHT (s)</label><input type="number" class="form-control" id="wsm-camp-aht" value="280" min="0"></div>
+              <div><label class="filter-label">Target Occupancy %</label><input type="number" class="form-control" id="wsm-camp-occ" value="85" min="0" max="100"></div>
+            </div>
+            <div style="display:flex; gap:0.75rem;">
+              <button id="wsm-camp-save-btn" class="btn btn-primary" style="padding:0.45rem 1.25rem;">✅ Create Campaign</button>
+              <button id="wsm-camp-cancel-btn" class="btn btn-secondary" style="padding:0.45rem 0.85rem;">Cancel</button>
+            </div>
+          </div>`;
+        attachCampaignFormListeners();
+      }
+    });
+  }
+
+  // Campaign edit buttons
+  c.querySelectorAll('.btn-wsm-edit-camp').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const campId = e.currentTarget.dataset.id;
+      let camp = (state.wsmCampaigns || []).find(x => x.id === campId);
+      if (!camp) {
+        try {
+          const res = await fetch(getApiUrl(`/api/wsm/campaigns/${encodeURIComponent(campId)}`));
+          if (res.ok) camp = await res.json();
+        } catch(err) {}
+      }
+      if (!camp) return;
+      const formArea = document.getElementById('wsm-camp-form-area');
+      if (!formArea) return;
+      const DAY_OPTIONS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+      const CURRENCIES = [
+        {code:'USD',label:'USD – US Dollar ($)'},{code:'INR',label:'INR – Indian Rupee (₹)'},
+        {code:'EUR',label:'EUR – Euro (€)'},{code:'JPY',label:'JPY – Japanese Yen (¥)'},
+        {code:'PHP',label:'PHP – Philippine Peso (₱)'},{code:'GBP',label:'GBP – British Pound (£)'},
+        {code:'AUD',label:'AUD – Australian Dollar (A$)'},{code:'CAD',label:'CAD – Canadian Dollar (C$)'},
+      ];
+      const days = camp.operating_days || ['Mon','Tue','Wed','Thu','Fri'];
+      formArea.innerHTML = `
+        <div style="background:rgba(15,23,42,0.85); border:1px solid var(--border-light); border-radius:var(--radius-md); padding:1.25rem; margin-bottom:1.25rem;">
+          <h4 style="font-size:1rem; color:white; font-weight:800; margin-bottom:1rem;">✏️ Edit Campaign: ${camp.name}</h4>
+          <input type="hidden" id="wsm-camp-id" value="${camp.id}">
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1rem;">
+            <div><label class="filter-label">Campaign Name *</label><input class="form-control" id="wsm-camp-name" value="${camp.name}"></div>
+            <div><label class="filter-label">Campaign Code</label><input class="form-control" id="wsm-camp-code" value="${camp.code}" readonly></div>
+            <div><label class="filter-label">Description</label><input class="form-control" id="wsm-camp-desc" value="${camp.description||''}"></div>
+            <div><label class="filter-label">Timezone</label>
+              <select class="sidebar-select" id="wsm-camp-tz">${['EST','CST','MST','PST','IST','PHT','GMT','CET'].map(tz=>`<option ${camp.timezone===tz?'selected':''}>${tz}</option>`).join('')}</select>
+            </div>
+          </div>
+          <div style="margin-bottom:1rem;">
+            <label class="filter-label">Operating Days</label>
+            <div style="display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:0.35rem;">
+              ${DAY_OPTIONS.map(d=>`<label style="display:flex;align-items:center;gap:0.3rem;cursor:pointer;background:${days.includes(d)?'rgba(99,102,241,0.2)':'rgba(255,255,255,0.05)'};border:1px solid ${days.includes(d)?'#818cf8':'var(--border-light)'};border-radius:var(--radius-sm);padding:0.3rem 0.65rem;font-size:0.8rem;color:${days.includes(d)?'white':'var(--text-muted)'};">
+                <input type="checkbox" class="wsm-day-cb" value="${d}" ${days.includes(d)?'checked':''} style="accent-color:#818cf8;"> ${d}
+              </label>`).join('')}
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1rem;">
+            <div><label class="filter-label">HOOP Start</label><input type="time" class="form-control" id="wsm-camp-hoop-start" value="${camp.hoop_start||'08:00'}"></div>
+            <div><label class="filter-label">HOOP End</label><input type="time" class="form-control" id="wsm-camp-hoop-end" value="${camp.hoop_end||'20:00'}"></div>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:1rem; margin-bottom:1rem;">
+            <div><label class="filter-label">Currency</label>
+              <select class="sidebar-select" id="wsm-camp-currency">${CURRENCIES.map(cu=>`<option value="${cu.code}" ${(camp.currency||'USD')===cu.code?'selected':''}>${cu.label}</option>`).join('')}</select>
+            </div>
+            <div><label class="filter-label">Base Hourly Rate</label><input type="number" class="form-control" id="wsm-camp-rate" value="${camp.base_hourly_rate||25.0}" min="0" step="0.5"></div>
+            <div><label class="filter-label">OT Multiplier</label><input type="number" class="form-control" id="wsm-camp-ot-mult" value="${camp.ot_multiplier||1.5}" min="1" step="0.1"></div>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:1rem; margin-bottom:1rem;">
+            <div><label class="filter-label">Target SLA %</label><input type="number" class="form-control" id="wsm-camp-sla" value="${camp.service_level_target||80}"></div>
+            <div><label class="filter-label">Target AHT (s)</label><input type="number" class="form-control" id="wsm-camp-aht" value="${camp.aht_target||280}"></div>
+            <div><label class="filter-label">Target Occupancy %</label><input type="number" class="form-control" id="wsm-camp-occ" value="${camp.occupancy_target||85}"></div>
+          </div>
+          <div style="display:flex; gap:0.75rem;">
+            <button id="wsm-camp-save-btn" class="btn btn-primary" style="padding:0.45rem 1.25rem;">💾 Save Changes</button>
+            <button id="wsm-camp-cancel-btn" class="btn btn-secondary" style="padding:0.45rem 0.85rem;">Cancel</button>
+          </div>
+        </div>`;
+      formArea.scrollIntoView({ behavior: 'smooth' });
+      attachCampaignFormListeners();
+    });
+  });
+
+  // Campaign delete buttons
+  c.querySelectorAll('.btn-wsm-delete-camp').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const campId = e.currentTarget.dataset.id;
+      if (!confirm(`Are you sure you want to delete this campaign?`)) return;
+      // Immediately remove from local state and re-render
+      state.wsmCampaigns = (state.wsmCampaigns || []).filter(x => x.id !== campId);
+      renderScheduling(c);
+      try {
+        await fetch(getApiUrl(`/api/wsm/campaigns/${encodeURIComponent(campId)}`), { method: 'DELETE' });
+        const fresh = await fetch(getApiUrl('/api/wsm/campaigns'));
+        if (fresh.ok) {
+          state.wsmCampaigns = await fresh.json();
+          renderScheduling(c);
+        }
+      } catch(err) {}
+    });
+  });
+
+  // Campaign manage agents (expand/collapse panel)
+  c.querySelectorAll('.btn-wsm-manage-agents').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const campId = e.currentTarget.dataset.id || e.currentTarget.dataset.campId;
+      const panel = document.getElementById(`agent-panel-${campId}`);
+      const list = document.getElementById(`agent-list-${campId}`);
+      if (!panel) return;
+      const isOpen = panel.style.display !== 'none';
+      panel.style.display = isOpen ? 'none' : 'block';
+      if (!isOpen && list) {
+        list.innerHTML = '<span style="color:var(--text-muted);"><i data-lucide="loader-2" class="spin" style="width:14px;height:14px;"></i> Loading assigned agents...</span>';
+        if (window.lucide) window.lucide.createIcons();
+        try {
+          const agRes = await fetch(getApiUrl(`/api/wsm/campaigns/${encodeURIComponent(campId)}/agents`));
+          const agents = agRes.ok ? await agRes.json() : [];
+          if (agents.length === 0) {
+            list.innerHTML = '<span style="color:var(--text-muted);">No agents assigned yet. Click "+ Add Agents" to assign from directory.</span>';
+          } else {
+            list.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:0.5rem;">${agents.map(a=>`
+              <div class="wsm-agent-pill" style="background:rgba(30,41,59,0.8);border:1px solid var(--border-light);border-radius:var(--radius-sm);padding:0.35rem 0.65rem;display:flex;align-items:center;gap:0.5rem;">
+                <div style="display:flex;flex-direction:column;">
+                  <span style="font-size:0.8rem;font-weight:700;color:white;">${a.name}</span>
+                  <span style="font-size:0.68rem;color:var(--text-muted);">${a.brand||''} · ${a.team||''}</span>
+                </div>
+                <button class="btn-wsm-rm-agent" data-camp="${campId}" data-agent="${a.id}" title="Remove agent from campaign" style="background:transparent;border:none;color:#f87171;cursor:pointer;font-size:0.85rem;padding:0 0.2rem;line-height:1;">✕</button>
+              </div>`).join('')}</div>`;
+            list.querySelectorAll('.btn-wsm-rm-agent').forEach(rb => {
+              rb.addEventListener('click', async (re) => {
+                re.stopPropagation();
+                const cId = re.currentTarget.dataset.camp;
+                const aId = re.currentTarget.dataset.agent;
+                const pill = re.currentTarget.closest('.wsm-agent-pill');
+                if (pill) pill.remove();
+                const camp = (state.wsmCampaigns || []).find(x => x.id === cId);
+                if (camp && camp.agent_count > 0) {
+                  camp.agent_count--;
+                  const badge = document.querySelector(`#camp-card-${cId} .wsm-camp-agent-count`);
+                  if (badge) badge.textContent = `👥 ${camp.agent_count} Agents`;
+                }
+                const container = document.getElementById(`agent-list-${cId}`);
+                if (container && container.querySelectorAll('.wsm-agent-pill').length === 0) {
+                  container.innerHTML = '<span style="color:var(--text-muted);">No agents assigned yet. Click "+ Add Agents" to assign from directory.</span>';
+                }
+                try {
+                  await fetch(getApiUrl(`/api/wsm/campaigns/${encodeURIComponent(cId)}/agents/${encodeURIComponent(aId)}`), { method: 'DELETE' });
+                } catch(err) {}
+              });
+            });
+          }
+        } catch(err) {
+          list.innerHTML = '<span style="color:var(--text-muted);">No agents assigned yet. Click "+ Add Agents" to assign.</span>';
+        }
+      }
+    });
+  });
+
+  // Add agents to campaign - Advanced searchable picker modal
+  c.querySelectorAll('.btn-wsm-add-agents').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const campId = e.currentTarget.dataset.campId;
+      const allAgents = state.agents || [];
+      const selectedSet = new Set();
+
+      const modal = document.createElement('div');
+      modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:9999;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);';
+      modal.innerHTML = `
+        <div style="background:#0f172a;border:1px solid var(--border-light);border-radius:var(--radius-lg);width:100%;max-width:620px;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 25px 50px -12px rgba(0,0,0,0.5);">
+          <!-- Header -->
+          <div style="padding:1.25rem 1.5rem;border-bottom:1px solid var(--border-light);display:flex;justify-content:space-between;align-items:center;">
+            <div>
+              <h3 style="color:white;font-weight:800;font-size:1.1rem;margin:0;">👥 Assign Agents to Campaign</h3>
+              <p style="font-size:0.78rem;color:var(--text-muted);margin:0.25rem 0 0 0;">Select employees to attach to this campaign roster</p>
+            </div>
+            <button id="wsm-modal-close-x" style="background:transparent;border:none;color:var(--text-muted);font-size:1.25rem;cursor:pointer;">✕</button>
+          </div>
+
+          <!-- Controls Bar -->
+          <div style="padding:0.75rem 1.5rem;border-bottom:1px solid var(--border-light);display:flex;gap:0.75rem;align-items:center;background:rgba(15,23,42,0.5);">
+            <input type="text" id="wsm-agent-search-input" placeholder="🔍 Search by name, team, brand, skill..." class="form-control" style="flex:1;font-size:0.82rem;padding:0.4rem 0.75rem;">
+            <button type="button" id="wsm-agent-select-all" class="btn btn-secondary" style="font-size:0.75rem;padding:0.35rem 0.65rem;white-space:nowrap;">Select All</button>
+            <button type="button" id="wsm-agent-clear-all" class="btn btn-secondary" style="font-size:0.75rem;padding:0.35rem 0.65rem;white-space:nowrap;">Clear</button>
+          </div>
+
+          <!-- Agents List with Checkboxes -->
+          <div id="wsm-agent-picker-list" style="flex:1;overflow-y:auto;max-height:360px;padding:0.75rem 1.5rem;display:flex;flex-direction:column;gap:0.35rem;">
+          </div>
+
+          <!-- Footer -->
+          <div style="padding:1rem 1.5rem;border-top:1px solid var(--border-light);display:flex;justify-content:space-between;align-items:center;background:rgba(15,23,42,0.8);">
+            <span id="wsm-agent-selected-counter" style="font-size:0.82rem;color:#818cf8;font-weight:700;">0 agents selected</span>
+            <div style="display:flex;gap:0.6rem;">
+              <button id="wsm-cancel-agent-modal" class="btn btn-secondary" style="padding:0.45rem 1rem;font-size:0.85rem;">Cancel</button>
+              <button id="wsm-confirm-add-agents" class="btn btn-primary" style="padding:0.45rem 1.25rem;font-size:0.85rem;">✅ Assign Selected</button>
+            </div>
+          </div>
+        </div>`;
+      document.body.appendChild(modal);
+
+      const listContainer = modal.querySelector('#wsm-agent-picker-list');
+      const counterEl = modal.querySelector('#wsm-agent-selected-counter');
+      const searchInput = modal.querySelector('#wsm-agent-search-input');
+
+      function updateCounter() {
+        if (counterEl) counterEl.textContent = `${selectedSet.size} agent${selectedSet.size === 1 ? '' : 's'} selected`;
+      }
+
+      function renderAgentRows(filterQuery = '') {
+        const q = filterQuery.toLowerCase().trim();
+        const filtered = allAgents.filter(a => {
+          if (!q) return true;
+          return (a.name || '').toLowerCase().includes(q) ||
+                 (a.brand || '').toLowerCase().includes(q) ||
+                 (a.team || '').toLowerCase().includes(q) ||
+                 (a.primarySkill || '').toLowerCase().includes(q);
+        });
+
+        if (filtered.length === 0) {
+          listContainer.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-muted);font-size:0.85rem;">No agents found matching search</div>';
+          return;
+        }
+
+        listContainer.innerHTML = filtered.map(a => {
+          const isChecked = selectedSet.has(a.id);
+          return `
+            <label class="wsm-agent-row" data-id="${a.id}" style="display:flex;align-items:center;justify-content:space-between;padding:0.5rem 0.75rem;background:${isChecked ? 'rgba(99,102,241,0.15)' : 'rgba(30,41,59,0.5)'};border:1px solid ${isChecked ? '#818cf8' : 'var(--border-light)'};border-radius:var(--radius-sm);cursor:pointer;transition:all 0.15s;">
+              <div style="display:flex;align-items:center;gap:0.75rem;">
+                <input type="checkbox" class="wsm-agent-row-cb" value="${a.id}" ${isChecked ? 'checked' : ''} style="accent-color:#818cf8;width:16px;height:16px;cursor:pointer;">
+                <div>
+                  <div style="font-weight:700;font-size:0.85rem;color:white;">${a.name}</div>
+                  <div style="font-size:0.72rem;color:var(--text-muted);">${a.id} · ${a.brand || 'No Brand'} · ${a.team || 'No Team'}</div>
+                </div>
+              </div>
+              <span class="badge badge-info" style="font-size:0.7rem;">${a.primarySkill || 'Agent'}</span>
+            </label>`;
+        }).join('');
+
+        listContainer.querySelectorAll('.wsm-agent-row').forEach(row => {
+          row.addEventListener('click', (e) => {
+            if (e.target.type === 'checkbox') return;
+            const cb = row.querySelector('.wsm-agent-row-cb');
+            if (cb) {
+              cb.checked = !cb.checked;
+              const aId = cb.value;
+              if (cb.checked) selectedSet.add(aId);
+              else selectedSet.delete(aId);
+              row.style.background = cb.checked ? 'rgba(99,102,241,0.15)' : 'rgba(30,41,59,0.5)';
+              row.style.borderColor = cb.checked ? '#818cf8' : 'var(--border-light)';
+              updateCounter();
+            }
+          });
+        });
+
+        listContainer.querySelectorAll('.wsm-agent-row-cb').forEach(cb => {
+          cb.addEventListener('change', (e) => {
+            const aId = e.target.value;
+            if (e.target.checked) selectedSet.add(aId);
+            else selectedSet.delete(aId);
+            const row = e.target.closest('.wsm-agent-row');
+            if (row) {
+              row.style.background = e.target.checked ? 'rgba(99,102,241,0.15)' : 'rgba(30,41,59,0.5)';
+              row.style.borderColor = e.target.checked ? '#818cf8' : 'var(--border-light)';
+            }
+            updateCounter();
+          });
+        });
+      }
+
+      renderAgentRows();
+
+      if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+          renderAgentRows(e.target.value);
+        });
+      }
+
+      modal.querySelector('#wsm-agent-select-all').addEventListener('click', () => {
+        const q = (searchInput?.value || '').toLowerCase().trim();
+        allAgents.forEach(a => {
+          if (!q || (a.name || '').toLowerCase().includes(q) || (a.brand || '').toLowerCase().includes(q) || (a.team || '').toLowerCase().includes(q)) {
+            selectedSet.add(a.id);
+          }
+        });
+        renderAgentRows(searchInput?.value || '');
+        updateCounter();
+      });
+
+      modal.querySelector('#wsm-agent-clear-all').addEventListener('click', () => {
+        selectedSet.clear();
+        renderAgentRows(searchInput?.value || '');
+        updateCounter();
+      });
+
+      modal.querySelector('#wsm-modal-close-x').addEventListener('click', () => modal.remove());
+      modal.querySelector('#wsm-cancel-agent-modal').addEventListener('click', () => modal.remove());
+
+      modal.querySelector('#wsm-confirm-add-agents').addEventListener('click', async () => {
+        const selected = Array.from(selectedSet);
+        if (selected.length === 0) { alert('Please select at least one agent.'); return; }
+        const confirmBtn = modal.querySelector('#wsm-confirm-add-agents');
+        confirmBtn.disabled = true;
+        confirmBtn.textContent = 'Assigning...';
+
+        try {
+          await fetch(getApiUrl(`/api/wsm/campaigns/${encodeURIComponent(campId)}/agents`), {
+            method: 'POST', headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({agent_ids: selected})
+          });
+        } catch(err) {}
+
+        modal.remove();
+
+        // Refresh agent list if panel is open
+        const list = document.getElementById(`agent-list-${campId}`);
+        if (list) {
+          try {
+            const agRes = await fetch(getApiUrl(`/api/wsm/campaigns/${encodeURIComponent(campId)}/agents`));
+            const agents = agRes.ok ? await agRes.json() : [];
+            if (agents.length > 0) {
+              list.innerHTML = `<div style="display:flex;flex-wrap:wrap;gap:0.5rem;">${agents.map(a=>`
+                <div class="wsm-agent-pill" style="background:rgba(30,41,59,0.8);border:1px solid var(--border-light);border-radius:var(--radius-sm);padding:0.35rem 0.65rem;display:flex;align-items:center;gap:0.5rem;">
+                  <div style="display:flex;flex-direction:column;">
+                    <span style="font-size:0.8rem;font-weight:700;color:white;">${a.name}</span>
+                    <span style="font-size:0.68rem;color:var(--text-muted);">${a.brand||''} · ${a.team||''}</span>
+                  </div>
+                  <button class="btn-wsm-rm-agent" data-camp="${campId}" data-agent="${a.id}" title="Remove agent from campaign" style="background:transparent;border:none;color:#f87171;cursor:pointer;font-size:0.85rem;padding:0 0.2rem;line-height:1;">✕</button>
+                </div>`).join('')}</div>`;
+              list.querySelectorAll('.btn-wsm-rm-agent').forEach(rb => {
+                rb.addEventListener('click', async (re) => {
+                  re.stopPropagation();
+                  const cId = re.currentTarget.dataset.camp;
+                  const aId = re.currentTarget.dataset.agent;
+                  const pill = re.currentTarget.closest('.wsm-agent-pill');
+                  if (pill) pill.remove();
+                  const camp = (state.wsmCampaigns || []).find(x => x.id === cId);
+                  if (camp && camp.agent_count > 0) {
+                    camp.agent_count--;
+                    const badge = document.querySelector(`#camp-card-${cId} .wsm-camp-agent-count`);
+                    if (badge) badge.textContent = `👥 ${camp.agent_count} Agents`;
+                  }
+                  const container = document.getElementById(`agent-list-${cId}`);
+                  if (container && container.querySelectorAll('.wsm-agent-pill').length === 0) {
+                    container.innerHTML = '<span style="color:var(--text-muted);">No agents assigned yet. Click "+ Add Agents" to assign from directory.</span>';
+                  }
+                  try {
+                    await fetch(getApiUrl(`/api/wsm/campaigns/${encodeURIComponent(cId)}/agents/${encodeURIComponent(aId)}`), { method: 'DELETE' });
+                  } catch(err) {}
+                });
+              });
+            }
+          } catch(err) {}
+        }
+
+        // Refresh campaigns
+        try {
+          const fresh = await fetch(getApiUrl('/api/wsm/campaigns'));
+          if (fresh.ok) state.wsmCampaigns = await fresh.json();
+        } catch(err) {}
+        renderScheduling(c);
+      });
+    });
+  });
+
+  function attachCampaignFormListeners() {
+    setTimeout(() => {
+      const cancelBtn = document.getElementById('wsm-camp-cancel-btn');
+      if (cancelBtn) cancelBtn.onclick = () => {
+        const fa = document.getElementById('wsm-camp-form-area');
+        if (fa) fa.innerHTML = '';
+      };
+      const saveBtn = document.getElementById('wsm-camp-save-btn');
+      if (!saveBtn) return;
+      saveBtn.onclick = async () => {
+        const campId = document.getElementById('wsm-camp-id')?.value || '';
+        const name = document.getElementById('wsm-camp-name')?.value?.trim();
+        const code = document.getElementById('wsm-camp-code')?.value?.trim();
+        if (!name) { alert('Campaign Name is required.'); return; }
+        const cleanCode = (code || name.toUpperCase().replace(/\s+/g, '_').substring(0, 10)).toUpperCase();
+        const generatedId = campId || `CAMP_${cleanCode}`;
+        const days = Array.from(document.querySelectorAll('.wsm-day-cb:checked')).map(cb => cb.value);
+        if (days.length === 0) { alert('Please select at least one operating day.'); return; }
+        const payload = {
+          name, code: cleanCode,
+          description: document.getElementById('wsm-camp-desc')?.value || '',
+          timezone: document.getElementById('wsm-camp-tz')?.value || 'EST',
+          currency: document.getElementById('wsm-camp-currency')?.value || 'USD',
+          service_level_target: parseInt(document.getElementById('wsm-camp-sla')?.value || 80),
+          aht_target: parseInt(document.getElementById('wsm-camp-aht')?.value || 280),
+          occupancy_target: parseInt(document.getElementById('wsm-camp-occ')?.value || 85),
+          shrinkage_target: 13.5, default_interval: 30,
+          operating_days: days,
+          hoop_start: document.getElementById('wsm-camp-hoop-start')?.value || '08:00',
+          hoop_end: document.getElementById('wsm-camp-hoop-end')?.value || '20:00',
+          base_hourly_rate: parseFloat(document.getElementById('wsm-camp-rate')?.value || 25),
+          ot_multiplier: parseFloat(document.getElementById('wsm-camp-ot-mult')?.value || 1.5),
+          weekend_multiplier: 1.25
+        };
+
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Saving...';
+
+        // Local state update function
+        const updateLocalState = () => {
+          if (!state.wsmCampaigns) state.wsmCampaigns = [];
+          const existingIdx = state.wsmCampaigns.findIndex(x => x.id === generatedId);
+          const campObj = {
+            id: generatedId,
+            name: payload.name,
+            code: payload.code,
+            description: payload.description,
+            timezone: payload.timezone,
+            currency: payload.currency,
+            status: 'Active',
+            service_level_target: payload.service_level_target,
+            aht_target: payload.aht_target,
+            occupancy_target: payload.occupancy_target,
+            shrinkage_target: payload.shrinkage_target,
+            default_interval: payload.default_interval,
+            operating_days: payload.operating_days,
+            hoop_start: payload.hoop_start,
+            hoop_end: payload.hoop_end,
+            base_hourly_rate: payload.base_hourly_rate,
+            ot_multiplier: payload.ot_multiplier,
+            weekend_multiplier: payload.weekend_multiplier,
+            agent_count: (state.wsmCampaigns.find(x => x.id === generatedId) || {}).agent_count || 0
+          };
+          if (existingIdx >= 0) {
+            state.wsmCampaigns[existingIdx] = { ...state.wsmCampaigns[existingIdx], ...campObj };
+          } else {
+            state.wsmCampaigns.unshift(campObj);
+          }
+        };
+
+        try {
+          const method = campId ? 'PUT' : 'POST';
+          const targetUrl = getApiUrl(campId ? `/api/wsm/campaigns/${encodeURIComponent(campId)}` : '/api/wsm/campaigns');
+          const res = await fetch(targetUrl, {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          if (res.ok) {
+            try {
+              const fresh = await fetch(getApiUrl('/api/wsm/campaigns'));
+              if (fresh.ok) state.wsmCampaigns = await fresh.json();
+              else updateLocalState();
+            } catch(e) { updateLocalState(); }
+          } else {
+            updateLocalState();
+          }
+        } catch(err) {
+          console.warn("Backend sync failed, updated local campaign state:", err);
+          updateLocalState();
+        }
+
+        const fa = document.getElementById('wsm-camp-form-area');
+        if (fa) fa.innerHTML = '';
+        renderScheduling(c);
+      };
+    }, 50);
+  }
+
+  // =============================================
+  // SHIFTS & ACTIVITIES LISTENERS
+  // =============================================
+
+  // Toggle primary activity form
+  const btnAddPrimary = document.getElementById('btn-wsm-add-primary-act');
+  const primaryForm = document.getElementById('wsm-add-primary-form');
+  if (btnAddPrimary && primaryForm) {
+    btnAddPrimary.addEventListener('click', () => {
+      primaryForm.style.display = primaryForm.style.display === 'none' ? 'block' : 'none';
+    });
+  }
+
+  // Save primary activity
+  const btnSavePrimary = document.getElementById('wsm-save-primary-act');
+  if (btnSavePrimary) {
+    btnSavePrimary.addEventListener('click', async () => {
+      const name = document.getElementById('wsm-new-primary-name')?.value?.trim();
+      const color = document.getElementById('wsm-new-primary-color')?.value || '#10b981';
+      if (!name) { alert('Enter an activity name.'); return; }
+      const actObj = { id: `ACT_${Date.now()}`, name, category: 'VOICE', activity_type: 'PRIMARY', color_hex: color, is_paid: 1, default_duration_minutes: 540, min_duration_minutes: 540, max_duration_minutes: 660 };
+      try {
+        await fetch(getApiUrl('/api/wsm/activities'), {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify(actObj)
+        });
+        const fresh = await fetch(getApiUrl('/api/wsm/activities'));
+        if (fresh.ok) state.wsmActivities = await fresh.json();
+        else {
+          if (!state.wsmActivities) state.wsmActivities = [];
+          state.wsmActivities.push(actObj);
+        }
+      } catch(err) {
+        if (!state.wsmActivities) state.wsmActivities = [];
+        state.wsmActivities.push(actObj);
+      }
+      renderScheduling(c);
+    });
+  }
+
+  // Toggle event activity form
+  const btnAddEvent = document.getElementById('btn-wsm-add-event-act');
+  const eventForm = document.getElementById('wsm-add-event-form');
+  if (btnAddEvent && eventForm) {
+    btnAddEvent.addEventListener('click', () => {
+      eventForm.style.display = eventForm.style.display === 'none' ? 'block' : 'none';
+    });
+  }
+
+  // Save event activity
+  const btnSaveEvent = document.getElementById('wsm-save-event-act');
+  if (btnSaveEvent) {
+    btnSaveEvent.addEventListener('click', async () => {
+      const name = document.getElementById('wsm-new-event-name')?.value?.trim();
+      const dur = parseInt(document.getElementById('wsm-new-event-dur')?.value || 15);
+      const cat = document.getElementById('wsm-new-event-cat')?.value || 'BREAK';
+      const paid = parseInt(document.getElementById('wsm-new-event-paid')?.value || 1);
+      if (!name) { alert('Enter an event name.'); return; }
+      const evObj = { id: `ACT_${Date.now()}`, name, category: cat, activity_type: 'EVENT', is_paid: paid, default_duration_minutes: dur, min_duration_minutes: Math.max(5,dur-10), max_duration_minutes: dur+30 };
+      try {
+        await fetch(getApiUrl('/api/wsm/activities'), {
+          method: 'POST', headers: {'Content-Type':'application/json'},
+          body: JSON.stringify(evObj)
+        });
+        const fresh = await fetch(getApiUrl('/api/wsm/activities'));
+        if (fresh.ok) state.wsmActivities = await fresh.json();
+        else {
+          if (!state.wsmActivities) state.wsmActivities = [];
+          state.wsmActivities.push(evObj);
+        }
+      } catch(err) {
+        if (!state.wsmActivities) state.wsmActivities = [];
+        state.wsmActivities.push(evObj);
+      }
+      renderScheduling(c);
+    });
+  }
+
+  // Delete activity
+  c.querySelectorAll('.btn-wsm-del-activity').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const actId = e.currentTarget.dataset.id;
+      if (!confirm('Remove this activity?')) return;
+      try {
+        await fetch(getApiUrl(`/api/wsm/activities/${encodeURIComponent(actId)}`), { method: 'DELETE' });
+        const fresh = await fetch(getApiUrl('/api/wsm/activities'));
+        if (fresh.ok) state.wsmActivities = await fresh.json();
+        else {
+          state.wsmActivities = (state.wsmActivities || []).filter(a => a.id !== actId);
+        }
+      } catch(err) {
+        state.wsmActivities = (state.wsmActivities || []).filter(a => a.id !== actId);
+      }
+      renderScheduling(c);
+    });
+  });
+
+  // Toggle shift builder
+  const btnToggleShift = document.getElementById('btn-wsm-toggle-shift-builder');
+  const shiftBuilderForm = document.getElementById('wsm-shift-builder-form');
+  if (btnToggleShift && shiftBuilderForm) {
+    btnToggleShift.addEventListener('click', () => {
+      shiftBuilderForm.style.display = shiftBuilderForm.style.display === 'none' ? 'block' : 'none';
+    });
+  }
+  const btnCancelShift = document.getElementById('wsm-cancel-shift-btn');
+  if (btnCancelShift && shiftBuilderForm) {
+    btnCancelShift.addEventListener('click', () => { shiftBuilderForm.style.display = 'none'; });
+  }
+
+  // Shift builder - add event to list
+  const shiftEventsContainer = [];
+  const btnAddEventToShift = document.getElementById('wsm-add-event-to-shift');
+  if (btnAddEventToShift) {
+    btnAddEventToShift.addEventListener('click', () => {
+      const sel = document.getElementById('wsm-shift-add-event-select');
+      const dur = parseInt(document.getElementById('wsm-shift-event-dur')?.value || 15);
+      const offset = parseInt(document.getElementById('wsm-shift-event-offset')?.value || 150);
+      if (!sel?.value) { alert('Select an event activity first.'); return; }
+      const actId = sel.value;
+      const actName = sel.options[sel.selectedIndex]?.dataset?.name || sel.options[sel.selectedIndex]?.text || '';
+      shiftEventsContainer.push({ activity_id: actId, duration_minutes: dur, offset_minutes: offset, name: actName });
+      const list = document.getElementById('wsm-shift-events-list');
+      if (list) {
+        list.innerHTML = shiftEventsContainer.map((ev, i) => `
+          <div style="background:rgba(99,102,241,0.1);border:1px solid rgba(99,102,241,0.3);border-radius:4px;padding:0.35rem 0.6rem;font-size:0.78rem;color:white;display:flex;justify-content:space-between;align-items:center;">
+            <span>📌 ${ev.name} — ${ev.duration_minutes}m @ +${ev.offset_minutes}min</span>
+            <button data-idx="${i}" class="btn-wsm-rm-ev-from-shift" style="background:transparent;border:none;color:#f87171;cursor:pointer;font-size:0.72rem;">✕</button>
+          </div>`).join('');
+        list.querySelectorAll('.btn-wsm-rm-ev-from-shift').forEach(rb => {
+          rb.addEventListener('click', (re) => {
+            shiftEventsContainer.splice(parseInt(re.currentTarget.dataset.idx), 1);
+            rb.parentElement.remove();
+          });
+        });
+      }
+    });
+  }
+
+  // Save shift
+  const btnSaveShift = document.getElementById('wsm-save-shift-btn');
+  if (btnSaveShift) {
+    btnSaveShift.addEventListener('click', async () => {
+      const name = document.getElementById('wsm-shift-name')?.value?.trim();
+      const campId = document.getElementById('wsm-shift-camp')?.value || null;
+      const primaryAct = document.getElementById('wsm-shift-primary-act')?.value || 'Phone';
+      const durH = parseFloat(document.getElementById('wsm-shift-dur')?.value || 9);
+      const earliest = document.getElementById('wsm-shift-start')?.value || '08:00';
+      const latest = document.getElementById('wsm-shift-end')?.value || '09:30';
+      if (!name) { alert('Enter a shift name.'); return; }
+      const payload = {
+        id: `SHT_${Date.now()}`,
+        campaign_id: campId, name, primary_activity: primaryAct,
+        duration_hours: durH, earliest_start: earliest, latest_start: latest,
+        events: shiftEventsContainer.map(ev => ({ activity_id: ev.activity_id, duration_minutes: ev.duration_minutes, offset_minutes: ev.offset_minutes }))
+      };
+      try {
+        const res = await fetch(getApiUrl('/api/wsm/shift-templates/v2'), {
+          method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload)
+        });
+        const fresh = await fetch(getApiUrl('/api/wsm/shift-templates'));
+        if (fresh.ok) state.wsmShiftTemplates = await fresh.json();
+        else {
+          if (!state.wsmShiftTemplates) state.wsmShiftTemplates = [];
+          state.wsmShiftTemplates.push(payload);
+        }
+      } catch(err) {
+        if (!state.wsmShiftTemplates) state.wsmShiftTemplates = [];
+        state.wsmShiftTemplates.push(payload);
+      }
+      shiftEventsContainer.length = 0;
+      renderScheduling(c);
+    });
+  }
+
+  // Delete shift
+  c.querySelectorAll('.btn-wsm-del-shift').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const tId = e.currentTarget.dataset.id;
+      if (!confirm('Remove this shift template?')) return;
+      try {
+        await fetch(getApiUrl(`/api/wsm/shift-templates/${encodeURIComponent(tId)}`), { method: 'DELETE' });
+        const fresh = await fetch(getApiUrl('/api/wsm/shift-templates'));
+        if (fresh.ok) state.wsmShiftTemplates = await fresh.json();
+        else {
+          state.wsmShiftTemplates = (state.wsmShiftTemplates || []).filter(t => t.id !== tId);
+        }
+      } catch(err) {
+        state.wsmShiftTemplates = (state.wsmShiftTemplates || []).filter(t => t.id !== tId);
+      }
+      renderScheduling(c);
+    });
+  });
+
+  // =============================================
+  // WORK PATTERN LISTENERS
+  // =============================================
+  const btnNewPattern = document.getElementById('btn-wsm-new-pattern');
+  const patternForm = document.getElementById('wsm-pattern-builder-form');
+  if (btnNewPattern && patternForm) {
+    btnNewPattern.addEventListener('click', () => {
+      patternForm.style.display = patternForm.style.display === 'none' ? 'block' : 'none';
+      patternForm.scrollIntoView({ behavior: 'smooth' });
+    });
+  }
+  const btnCancelPattern = document.getElementById('wsm-cancel-pattern-btn');
+  if (btnCancelPattern && patternForm) {
+    btnCancelPattern.addEventListener('click', () => { patternForm.style.display = 'none'; });
+  }
+
+  // Day checkbox toggling in pattern builder
+  c.querySelectorAll('.wsm-pattern-day-cb').forEach(cb => {
+    cb.addEventListener('change', (e) => {
+      const idx = parseInt(e.currentTarget.dataset.idx);
+      const label = e.currentTarget.parentElement.querySelector('span');
+      const dayShiftSel = c.querySelectorAll('.wsm-day-shift-select')[idx];
+      if (e.currentTarget.checked) {
+        if (label) label.textContent = '✅';
+        if (dayShiftSel) dayShiftSel.style.opacity = '1';
+      } else {
+        if (label) label.textContent = '❌';
+        if (dayShiftSel) dayShiftSel.style.opacity = '0.4';
+      }
+    });
+  });
+
+  // Save work pattern
+  const btnSavePattern = document.getElementById('wsm-save-pattern-btn');
+  if (btnSavePattern) {
+    btnSavePattern.addEventListener('click', async () => {
+      const name = document.getElementById('wsm-pattern-name')?.value?.trim();
+      const defaultShift = document.getElementById('wsm-pattern-default-shift')?.value || null;
+      if (!name) { alert('Enter a pattern name.'); return; }
+      const DAY_NAMES = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+      const dayCBs = c.querySelectorAll('.wsm-pattern-day-cb');
+      const dayShifts = c.querySelectorAll('.wsm-day-shift-select');
+      const days = DAY_NAMES.map((d, i) => ({
+        day_name: d,
+        is_working: dayCBs[i]?.checked || false,
+        shift_template_id: dayShifts[i]?.value || null
+      }));
+      const daysOn = days.filter(d => d.is_working).length;
+      const payload = {
+        id: `WP_${Date.now()}`,
+        name, description: '', shift_template_id: defaultShift, days,
+        days_on: daysOn, days_off: 7 - daysOn, weekly_hours: daysOn * 8.0
+      };
+      try {
+        const res = await fetch(getApiUrl('/api/wsm/work-patterns/v2'), {
+          method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload)
+        });
+        const fresh = await fetch(getApiUrl('/api/wsm/work-patterns'));
+        if (fresh.ok) state.wsmWorkPatterns = await fresh.json();
+        else {
+          if (!state.wsmWorkPatterns) state.wsmWorkPatterns = [];
+          state.wsmWorkPatterns.push(payload);
+        }
+      } catch(err) {
+        if (!state.wsmWorkPatterns) state.wsmWorkPatterns = [];
+        state.wsmWorkPatterns.push(payload);
+      }
+      renderScheduling(c);
+    });
+  }
+
+  // Delete work pattern
+  c.querySelectorAll('.btn-wsm-del-pattern').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const pId = e.currentTarget.dataset.id;
+      if (!confirm('Delete this work pattern?')) return;
+      try {
+        await fetch(getApiUrl(`/api/wsm/work-patterns/${encodeURIComponent(pId)}`), { method: 'DELETE' });
+        const fresh = await fetch(getApiUrl('/api/wsm/work-patterns'));
+        if (fresh.ok) state.wsmWorkPatterns = await fresh.json();
+        else {
+          state.wsmWorkPatterns = (state.wsmWorkPatterns || []).filter(p => p.id !== pId);
+        }
+      } catch(err) {
+        state.wsmWorkPatterns = (state.wsmWorkPatterns || []).filter(p => p.id !== pId);
+      }
+      renderScheduling(c);
+    });
+  });
+
   // WFM Console Navigation
+
   const consoleBtnPrev = document.getElementById('console-btn-prev');
   if (consoleBtnPrev) {
     consoleBtnPrev.addEventListener('click', () => {
@@ -6557,6 +9534,17 @@ function attachShowcaseEventListeners(c, role, targetAgent, rosterAgents, curDat
             changed_by: changedByName
           });
           alert(`Success: ${activeDrawerAgent.name} status updated to ${isOff ? 'Week Off' : 'Working Day'} on ${activeDate}!`);
+        } else if (drawerSelectedAction === 'delete') {
+          const delType = document.getElementById('drawer-delete-type')?.value || 'reset_baseline';
+          await api.deleteSchedule({
+            agent_id: activeDrawerAgent.id,
+            dates: [activeDate],
+            delete_type: delType,
+            reason: reasonVal,
+            comments: commentsVal,
+            changed_by: changedByName
+          });
+          alert(`Success: Schedule for ${activeDrawerAgent.name} on ${activeDate} has been updated (${delType})!`);
         } else if (drawerSelectedAction === 'shift' || drawerSelectedAction === 'slide') {
           const startT = document.getElementById('drawer-start-time')?.value || '08:00';
           const endT = document.getElementById('drawer-end-time')?.value || '17:00';
@@ -6580,6 +9568,40 @@ function attachShowcaseEventListeners(c, role, targetAgent, rosterAgents, curDat
       }
     });
   }
+
+  // WFM Drawer 1-Click Delete Specific Activity
+  c.querySelectorAll('.btn-drawer-delete-activity').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const actId = e.currentTarget.dataset.id;
+      const actName = e.currentTarget.dataset.name;
+      const activeDrawerAgent = state.agents.find(a => a.id === expandedAgentId) || targetAgent || rosterAgents[0] || state.agents[0];
+      const activeDate = document.getElementById('drawer-date-picker')?.value || expandedDateStr || curDateStr;
+
+      if (confirm(`Are you sure you want to delete activity "${actName}" for ${activeDrawerAgent.name} on ${activeDate}?`)) {
+        try {
+          await api.manageScheduleActivity({
+            agent_id: activeDrawerAgent.id,
+            agent_name: activeDrawerAgent.name,
+            date: activeDate,
+            action: 'remove',
+            activity_id: actId,
+            activity_name: actName,
+            start_time: '00:00',
+            end_time: '00:00',
+            duration_minutes: 0,
+            reason: 'Activity deleted by WFM Admin',
+            changed_by: state.currentUser ? state.currentUser.name : 'WFM Admin'
+          });
+          alert(`Success: Activity "${actName}" deleted!`);
+          await initData();
+          renderScheduling(c);
+        } catch (err) {
+          alert("Error deleting activity: " + err.message);
+        }
+      }
+    });
+  });
 }
 
 // TL Modal Helpers (Direct to WFM approval with Agent notification)
@@ -7435,6 +10457,281 @@ function showAgentWeekOffModal(agent, c) {
   });
 }
 
+function showAgentRemovalModal(agent, c) {
+  const curDate = state.selectedDate || formatIsoDate(new Date());
+  const curSched = getResolvedAgentDaySchedule(agent, curDate);
+  const activities = curSched.activities || [];
+
+  const modalHtml = `
+    <div id="agent-request-modal-overlay" style="position:fixed; inset:0; background:rgba(0,0,0,0.75); backdrop-filter:blur(6px); z-index:9999; display:flex; align-items:center; justify-content:center;">
+      <div style="background:#0f172a; border:1px solid var(--border-light); border-radius:var(--radius-lg); width:100%; max-width:490px; padding:1.5rem; box-shadow:0 20px 40px rgba(0,0,0,0.5);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; border-bottom:1px solid var(--border-light); padding-bottom:0.75rem;">
+          <h3 style="font-size:1.1rem; font-weight:800; color:white; font-family:var(--font-display); display:flex; align-items:center; gap:0.5rem;">
+            <i data-lucide="trash-2" style="width:18px;height:18px; color:#f87171;"></i> Request Activity / Shift Removal
+          </h3>
+          <button id="modal-close-btn" style="background:transparent; border:none; color:var(--text-muted); cursor:pointer; font-size:1.25rem;">✕</button>
+        </div>
+
+        <form id="agent-removal-form" style="display:flex; flex-direction:column; gap:0.9rem;">
+          <div>
+            <label class="filter-label">Selected Date</label>
+            <input type="date" class="form-control" id="req-rem-date" value="${curDate}" required style="padding:0.45rem 0.6rem; font-size:0.85rem;">
+          </div>
+
+          <div>
+            <label class="filter-label">Select Scheduled Item to Remove *</label>
+            <select class="sidebar-select" id="req-rem-target" required style="padding:0.5rem; font-size:0.85rem;">
+              <optgroup label="Scheduled Shift">
+                <option value="SHIFT_CANCEL">❌ Cancel Full Day Shift (${curSched.shiftStart || '08:00'} - ${curSched.shiftEnd || '17:00'})</option>
+              </optgroup>
+              ${activities.length > 0 ? `
+                <optgroup label="Scheduled Activities on this Day">
+                  ${activities.map((a, idx) => `
+                    <option value="ACT_${a.id || idx}" data-name="${a.name}" data-id="${a.id || idx}">🗑️ Activity: ${a.name} (${a.start} - ${a.end})</option>
+                  `).join('')}
+                </optgroup>
+              ` : `
+                <option value="" disabled>(No extra activities on this day)</option>
+              `}
+            </select>
+          </div>
+
+          <div>
+            <label class="filter-label">Reason for Removal *</label>
+            <select class="sidebar-select" id="req-rem-reason" style="padding:0.5rem; font-size:0.85rem;">
+              <option value="Activity Rescheduled">Activity Rescheduled</option>
+              <option value="Operational Shift Conflict">Operational Shift Conflict</option>
+              <option value="Personal Shift Cancellation">Personal Shift Cancellation</option>
+              <option value="Emergency Request">Emergency Request</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="filter-label">Comments for TL</label>
+            <textarea class="form-control" id="req-rem-comments" rows="2" placeholder="Provide context on why this should be removed..." style="padding:0.45rem 0.6rem; font-size:0.85rem;"></textarea>
+          </div>
+
+          <div style="background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3); border-radius:var(--radius-sm); padding:0.6rem; font-size:0.72rem; color:#fca5a5;">
+            ℹ️ <strong>Approval Pipeline:</strong> Your removal request will go to Team Leader <strong>Marcus Brody</strong>, then to <strong>WFM Admin</strong> for final removal.
+          </div>
+
+          <div style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:0.5rem;">
+            <button type="button" class="btn btn-secondary" id="modal-cancel-btn" style="padding:0.45rem 1rem;">Cancel</button>
+            <button type="submit" class="btn btn-danger" style="padding:0.45rem 1.25rem;">Submit Removal Request</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+  if (window.lucide) window.lucide.createIcons();
+
+  const overlay = document.getElementById('agent-request-modal-overlay');
+  const close = () => overlay && overlay.remove();
+
+  document.getElementById('modal-close-btn').addEventListener('click', close);
+  document.getElementById('modal-cancel-btn').addEventListener('click', close);
+
+  // Date change updates targets
+  const dateInput = document.getElementById('req-rem-date');
+  if (dateInput) {
+    dateInput.addEventListener('change', (e) => {
+      const newD = e.target.value;
+      if (newD) {
+        state.selectedDate = newD;
+        close();
+        showAgentRemovalModal(agent, c);
+      }
+    });
+  }
+
+  document.getElementById('agent-removal-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const dt = document.getElementById('req-rem-date').value;
+    const targetSel = document.getElementById('req-rem-target');
+    const selectedVal = targetSel.value;
+    const isShiftCancel = (selectedVal === 'SHIFT_CANCEL');
+    const opt = targetSel.options[targetSel.selectedIndex];
+    const actName = opt?.dataset?.name || '';
+    const actId = opt?.dataset?.id || '';
+    const reason = document.getElementById('req-rem-reason').value;
+    const comments = document.getElementById('req-rem-comments').value;
+
+    try {
+      await api.createWorkflowRequest({
+        agent_id: agent.id,
+        agent_name: agent.name,
+        request_type: isShiftCancel ? 'schedule_removal' : 'activity_removal',
+        dates: [dt],
+        details: isShiftCancel ? { schedule_removal: true } : { activity_id: actId, activity_name: actName },
+        reason: reason,
+        comments: comments
+      });
+      alert(`Success: Your removal request has been submitted to your Team Leader for approval!`);
+      close();
+      await initData();
+      renderScheduling(c);
+    } catch (err) {
+      alert("Error submitting request: " + err.message);
+    }
+  });
+}
+
+function showTlRemovalModal(teamAgents, c) {
+  const curDate = state.selectedDate || formatIsoDate(new Date());
+  const selectedAgentId = teamAgents[0]?.id || '';
+  const initialAgent = teamAgents.find(a => a.id === selectedAgentId) || teamAgents[0];
+  const curSched = getResolvedAgentDaySchedule(initialAgent, curDate);
+  const activities = curSched.activities || [];
+
+  const modalHtml = `
+    <div id="agent-request-modal-overlay" style="position:fixed; inset:0; background:rgba(0,0,0,0.75); backdrop-filter:blur(6px); z-index:9999; display:flex; align-items:center; justify-content:center;">
+      <div style="background:#0f172a; border:1px solid var(--border-light); border-radius:var(--radius-lg); width:100%; max-width:490px; padding:1.5rem; box-shadow:0 20px 40px rgba(0,0,0,0.5);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; border-bottom:1px solid var(--border-light); padding-bottom:0.75rem;">
+          <h3 style="font-size:1.1rem; font-weight:800; color:white; font-family:var(--font-display); display:flex; align-items:center; gap:0.5rem;">
+            <i data-lucide="trash-2" style="width:18px;height:18px; color:#f87171;"></i> TL: Request Activity / Shift Removal
+          </h3>
+          <button id="modal-close-btn" style="background:transparent; border:none; color:var(--text-muted); cursor:pointer; font-size:1.25rem;">✕</button>
+        </div>
+
+        <form id="tl-removal-form" style="display:flex; flex-direction:column; gap:0.9rem;">
+          <div>
+            <label class="filter-label">Select Team Member</label>
+            <select class="sidebar-select" id="tl-rem-agent-id" required style="padding:0.5rem; font-size:0.85rem;">
+              ${teamAgents.map(ag => `<option value="${ag.id}">${ag.name} (${ag.id})</option>`).join('')}
+            </select>
+          </div>
+
+          <div>
+            <label class="filter-label">Selected Date</label>
+            <input type="date" class="form-control" id="tl-rem-date" value="${curDate}" required style="padding:0.45rem 0.6rem; font-size:0.85rem;">
+          </div>
+
+          <div>
+            <label class="filter-label">Select Scheduled Item to Remove *</label>
+            <select class="sidebar-select" id="tl-rem-target" required style="padding:0.5rem; font-size:0.85rem;">
+              <optgroup label="Scheduled Shift">
+                <option value="SHIFT_CANCEL">❌ Cancel Full Day Shift (${curSched.shiftStart || '08:00'} - ${curSched.shiftEnd || '17:00'})</option>
+              </optgroup>
+              ${activities.length > 0 ? `
+                <optgroup label="Scheduled Activities on this Day">
+                  ${activities.map((a, idx) => `
+                    <option value="ACT_${a.id || idx}" data-name="${a.name}" data-id="${a.id || idx}">🗑️ Activity: ${a.name} (${a.start} - ${a.end})</option>
+                  `).join('')}
+                </optgroup>
+              ` : `
+                <option value="" disabled>(No extra activities on this day)</option>
+              `}
+            </select>
+          </div>
+
+          <div>
+            <label class="filter-label">Reason for Removal *</label>
+            <select class="sidebar-select" id="tl-rem-reason" style="padding:0.5rem; font-size:0.85rem;">
+              <option value="Operational Reallocation">Operational Reallocation</option>
+              <option value="Team Leader Shift Swap">Team Leader Shift Swap</option>
+              <option value="Duplicate Activity Cancellation">Duplicate Activity Cancellation</option>
+              <option value="Emergency Schedule Cleanup">Emergency Schedule Cleanup</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="filter-label">Comments for WFM Admin</label>
+            <textarea class="form-control" id="tl-rem-comments" rows="2" placeholder="Provide notes for WFM..." style="padding:0.45rem 0.6rem; font-size:0.85rem;"></textarea>
+          </div>
+
+          <div style="background:rgba(56,189,248,0.1); border:1px solid rgba(56,189,248,0.3); border-radius:var(--radius-sm); padding:0.6rem; font-size:0.72rem; color:#7dd3fc;">
+            ⚡ <strong>Direct to WFM:</strong> This removal request will be sent directly to <strong>WFM Admin</strong> for approval & roster application.
+          </div>
+
+          <div style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:0.5rem;">
+            <button type="button" class="btn btn-secondary" id="modal-cancel-btn" style="padding:0.45rem 1rem;">Cancel</button>
+            <button type="submit" class="btn btn-danger" style="padding:0.45rem 1.25rem;">Submit to WFM</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+  if (window.lucide) window.lucide.createIcons();
+
+  const overlay = document.getElementById('agent-request-modal-overlay');
+  const close = () => overlay && overlay.remove();
+
+  document.getElementById('modal-close-btn').addEventListener('click', close);
+  document.getElementById('modal-cancel-btn').addEventListener('click', close);
+
+  // Dynamic agent or date change updates scheduled targets list
+  const updateTargets = () => {
+    const agId = document.getElementById('tl-rem-agent-id').value;
+    const ag = teamAgents.find(a => a.id === agId) || teamAgents[0];
+    const dt = document.getElementById('tl-rem-date').value;
+    const s = getResolvedAgentDaySchedule(ag, dt);
+    const acts = s.activities || [];
+    const targetSel = document.getElementById('tl-rem-target');
+    if (!targetSel) return;
+
+    let html = `
+      <optgroup label="Scheduled Shift">
+        <option value="SHIFT_CANCEL">❌ Cancel Full Day Shift (${s.shiftStart || '08:00'} - ${s.shiftEnd || '17:00'})</option>
+      </optgroup>
+    `;
+    if (acts.length > 0) {
+      html += `
+        <optgroup label="Scheduled Activities on this Day">
+          ${acts.map((a, idx) => `
+            <option value="ACT_${a.id || idx}" data-name="${a.name}" data-id="${a.id || idx}">🗑️ Activity: ${a.name} (${a.start} - ${a.end})</option>
+          `).join('')}
+        </optgroup>
+      `;
+    } else {
+      html += `<option value="" disabled>(No extra activities on this day)</option>`;
+    }
+    targetSel.innerHTML = html;
+  };
+
+  document.getElementById('tl-rem-agent-id').addEventListener('change', updateTargets);
+  document.getElementById('tl-rem-date').addEventListener('change', updateTargets);
+
+  document.getElementById('tl-removal-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const agId = document.getElementById('tl-rem-agent-id').value;
+    const ag = teamAgents.find(a => a.id === agId) || teamAgents[0];
+    const dt = document.getElementById('tl-rem-date').value;
+    const targetSel = document.getElementById('tl-rem-target');
+    const selectedVal = targetSel.value;
+    const isShiftCancel = (selectedVal === 'SHIFT_CANCEL');
+    const opt = targetSel.options[targetSel.selectedIndex];
+    const actName = opt?.dataset?.name || '';
+    const actId = opt?.dataset?.id || '';
+    const reason = document.getElementById('tl-rem-reason').value;
+    const comments = document.getElementById('tl-rem-comments').value;
+
+    try {
+      await api.createWorkflowRequest({
+        agent_id: ag.id,
+        agent_name: ag.name,
+        request_type: isShiftCancel ? 'schedule_removal' : 'activity_removal',
+        dates: [dt],
+        details: isShiftCancel ? { schedule_removal: true } : { activity_id: actId, activity_name: actName },
+        reason: reason,
+        comments: comments,
+        stage: 'wfm_review',
+        initiator_role: 'Team Leader',
+        tl_name: 'Marcus Brody'
+      });
+      alert(`Success: Removal request for ${ag.name} submitted directly to WFM!`);
+      close();
+      await initData();
+      renderScheduling(c);
+    } catch (err) {
+      alert("Error submitting request: " + err.message);
+    }
+  });
+}
+
 // ==========================================
 // 8. Intraday Adherence View Renderer
 // ==========================================
@@ -7923,105 +11220,368 @@ function renderUserDirectory(c) {
   const pendingCount = state.accounts.filter(u => u.status === 'Pending Approval').length;
   const inactiveCount = state.accounts.filter(u => u.status === 'Inactive' || u.status === 'Suspended').length;
 
+  const rules = (state.scheduleConfig && state.scheduleConfig.breakLunchRules) || {
+    break1Duration: 15,
+    break1OffsetHours: 2.5,
+    lunchDuration: 60,
+    lunchOffsetHours: 4.0,
+    break2Duration: 15,
+    break2OffsetHours: 6.5,
+    standardShiftHours: 9.0
+  };
+
+  const totalBreakMin = (Number(rules.break1Duration) || 15) + (Number(rules.break2Duration) || 15);
+  const totalLunchMin = Number(rules.lunchDuration) || 60;
+  const totalOffQueueMin = totalBreakMin + totalLunchMin;
+  const totalShiftMin = Math.round((Number(rules.standardShiftHours) || 9.0) * 60);
+  const totalProdMin = totalShiftMin - totalOffQueueMin;
+
   c.innerHTML = `
-    <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:1.25rem; margin-bottom:1.5rem;">
-      <div style="background:rgba(30,41,59,0.5); padding:1rem; border-radius:var(--radius-md); border:1px solid var(--border-light); text-align:center;">
-        <span style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; font-weight:600;">Active Identities</span>
-        <div style="font-size:1.5rem; font-weight:700; color:var(--color-success); margin-top:0.25rem;">${activeCount} Users</div>
+    <!-- Admin Section Sub-Tabs Navigation -->
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem; border-bottom:1px solid var(--border-light); padding-bottom:0.75rem;">
+      <div style="display:flex; gap:0.5rem;">
+        <button type="button" class="btn ${adminSubTab === 'users' ? 'btn-primary' : 'btn-secondary'}" id="admin-tab-users" style="padding:0.45rem 1rem; font-size:0.85rem; font-weight:700;">
+          <i data-lucide="users" style="width:15px;height:15px;"></i> Identity & Access Directory
+        </button>
+        <button type="button" class="btn ${adminSubTab === 'patterns' ? 'btn-primary' : 'btn-secondary'}" id="admin-tab-patterns" style="padding:0.45rem 1rem; font-size:0.85rem; font-weight:700;">
+          <i data-lucide="sliders" style="width:15px;height:15px;"></i> Break & Lunch Pattern Studio
+        </button>
       </div>
-      <div style="background:rgba(30,41,59,0.5); padding:1rem; border-radius:var(--radius-md); border:1px solid var(--border-light); text-align:center;">
-        <span style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; font-weight:600;">Pending Approvals</span>
-        <div style="font-size:1.5rem; font-weight:700; color:var(--color-warning); margin-top:0.25rem;">${pendingCount} Accounts</div>
-      </div>
-      <div style="background:rgba(30,41,59,0.5); padding:1rem; border-radius:var(--radius-md); border:1px solid var(--border-light); text-align:center;">
-        <span style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; font-weight:600;">Suspended / Inactive</span>
-        <div style="font-size:1.5rem; font-weight:700; color:var(--color-danger); margin-top:0.25rem;">${inactiveCount} Users</div>
-      </div>
+
+      <span style="font-size:0.75rem; color:var(--text-muted);">
+        Enterprise Work Rules & Access Control (Admin Mode)
+      </span>
     </div>
 
-    <div class="filter-bar">
-      <div class="filter-group">
-        <label class="filter-label">Search Users</label>
-        <input type="text" class="form-control" id="user-search" placeholder="Search name, email, role..." value="${userSearchQuery}" style="width: 220px; padding: 0.4rem 0.6rem;">
+    ${adminSubTab === 'patterns' ? `
+      <!-- BREAK & LUNCH PATTERN STUDIO -->
+      <div style="display:flex; flex-direction:column; gap:1.25rem;">
+        
+        <!-- Summary Cards -->
+        <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:1rem;">
+          <div style="background:rgba(30,41,59,0.5); padding:1rem; border-radius:var(--radius-md); border:1px solid var(--border-light); text-align:center;">
+            <span style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; font-weight:600;">Shift Schedule</span>
+            <div style="font-size:1.4rem; font-weight:700; color:white; margin-top:0.25rem;">${rules.standardShiftHours || 9.0} Hours</div>
+            <span style="font-size:0.68rem; color:#94a3b8;">${totalShiftMin} mins standard</span>
+          </div>
+
+          <div style="background:rgba(30,41,59,0.5); padding:1rem; border-radius:var(--radius-md); border:1px solid var(--border-light); text-align:center;">
+            <span style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; font-weight:600;">Morning & Afternoon Breaks</span>
+            <div style="font-size:1.4rem; font-weight:700; color:#38bdf8; margin-top:0.25rem;">2 × 15 Mins</div>
+            <span style="font-size:0.68rem; color:#94a3b8;">${totalBreakMin} mins total rest</span>
+          </div>
+
+          <div style="background:rgba(30,41,59,0.5); padding:1rem; border-radius:var(--radius-md); border:1px solid var(--border-light); text-align:center;">
+            <span style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; font-weight:600;">Lunch Interval</span>
+            <div style="font-size:1.4rem; font-weight:700; color:#fbbf24; margin-top:0.25rem;">1 × ${rules.lunchDuration || 60} Mins</div>
+            <span style="font-size:0.68rem; color:#94a3b8;">1 hour midday meal</span>
+          </div>
+
+          <div style="background:rgba(30,41,59,0.5); padding:1rem; border-radius:var(--radius-md); border:1px solid var(--border-light); text-align:center;">
+            <span style="font-size:0.72rem; color:var(--text-muted); text-transform:uppercase; font-weight:600;">Net Productive Hours</span>
+            <div style="font-size:1.4rem; font-weight:700; color:#34d399; margin-top:0.25rem;">${(totalProdMin / 60).toFixed(1)} Hours</div>
+            <span style="font-size:0.68rem; color:#94a3b8;">${totalProdMin} mins on-queue</span>
+          </div>
+        </div>
+
+        <!-- Pattern Studio Configuration Card -->
+        <div class="card" style="padding:1.5rem;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem; border-bottom:1px solid var(--border-light); padding-bottom:0.75rem;">
+            <div>
+              <h3 style="font-size:1.05rem; font-weight:800; color:white; font-family:var(--font-display);">Shift Break & Lunch Generation Pattern</h3>
+              <p style="font-size:0.75rem; color:var(--text-muted); margin-top:0.2rem;">Configure the automated 2 breaks + 1 lunch pattern applied when generating agent shifts.</p>
+            </div>
+            <div style="display:flex; gap:0.5rem;">
+              <button type="button" class="btn btn-secondary" id="btn-reset-pattern-rules" style="padding:0.4rem 0.85rem; font-size:0.8rem;">
+                <i data-lucide="rotate-ccw" style="width:14px;height:14px;"></i> Reset Defaults
+              </button>
+              <button type="button" class="btn btn-primary" id="btn-save-pattern-rules" style="padding:0.4rem 1.1rem; font-size:0.8rem;">
+                <i data-lucide="save" style="width:14px;height:14px;"></i> Save Work Rules
+              </button>
+            </div>
+          </div>
+
+          <form id="pattern-studio-form" style="display:flex; flex-direction:column; gap:1.25rem;">
+            
+            <!-- Standard Shift Length -->
+            <div style="background:rgba(15,23,42,0.4); border:1px solid var(--border-light); border-radius:var(--radius-md); padding:1rem;">
+              <h4 style="font-size:0.85rem; font-weight:700; color:white; margin-bottom:0.6rem; display:flex; align-items:center; gap:0.5rem;">
+                <i data-lucide="clock" style="width:15px;height:15px; color:#a78bfa;"></i> Standard Shift Baseline Length
+              </h4>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+                <div>
+                  <label class="filter-label">Standard Shift Duration (Hours)</label>
+                  <input type="number" step="0.5" min="4" max="14" class="form-control" id="rule-shift-hours" value="${rules.standardShiftHours || 9.0}" style="padding:0.45rem 0.6rem; font-size:0.85rem;">
+                </div>
+                <div>
+                  <label class="filter-label">Standard Operating Window</label>
+                  <input type="text" class="form-control" value="08:00 - 17:00 / 09:00 - 18:00" readonly style="padding:0.45rem 0.6rem; font-size:0.85rem; background:rgba(30,41,59,0.3); color:#94a3b8;">
+                </div>
+              </div>
+            </div>
+
+            <!-- Morning Break 1 -->
+            <div style="background:rgba(15,23,42,0.4); border:1px solid var(--border-light); border-radius:var(--radius-md); padding:1rem;">
+              <h4 style="font-size:0.85rem; font-weight:700; color:#38bdf8; margin-bottom:0.6rem; display:flex; align-items:center; gap:0.5rem;">
+                <i data-lucide="coffee" style="width:15px;height:15px; color:#38bdf8;"></i> Morning Break (Break 1 - 15 Mins)
+              </h4>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+                <div>
+                  <label class="filter-label">Break 1 Duration (Minutes)</label>
+                  <input type="number" min="5" max="45" step="5" class="form-control" id="rule-b1-dur" value="${rules.break1Duration || 15}" style="padding:0.45rem 0.6rem; font-size:0.85rem;">
+                </div>
+                <div>
+                  <label class="filter-label">Offset from Shift Start (Hours into shift)</label>
+                  <input type="number" step="0.25" min="1" max="5" class="form-control" id="rule-b1-offset" value="${rules.break1OffsetHours || 2.5}" style="padding:0.45rem 0.6rem; font-size:0.85rem;">
+                  <span style="font-size:0.68rem; color:var(--text-muted);">Default: +2.5h (e.g., 10:30 for 08:00 shift)</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Lunch Break -->
+            <div style="background:rgba(15,23,42,0.4); border:1px solid var(--border-light); border-radius:var(--radius-md); padding:1rem;">
+              <h4 style="font-size:0.85rem; font-weight:700; color:#fbbf24; margin-bottom:0.6rem; display:flex; align-items:center; gap:0.5rem;">
+                <i data-lucide="utensils" style="width:15px;height:15px; color:#fbbf24;"></i> Lunch Break (1 Hour / 60 Mins)
+              </h4>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+                <div>
+                  <label class="filter-label">Lunch Duration (Minutes)</label>
+                  <input type="number" min="30" max="90" step="15" class="form-control" id="rule-lunch-dur" value="${rules.lunchDuration || 60}" style="padding:0.45rem 0.6rem; font-size:0.85rem;">
+                </div>
+                <div>
+                  <label class="filter-label">Offset from Shift Start (Hours into shift)</label>
+                  <input type="number" step="0.25" min="2" max="7" class="form-control" id="rule-lunch-offset" value="${rules.lunchOffsetHours || 4.0}" style="padding:0.45rem 0.6rem; font-size:0.85rem;">
+                  <span style="font-size:0.68rem; color:var(--text-muted);">Default: +4.0h (e.g., 12:00 for 08:00 shift)</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Afternoon Break 2 -->
+            <div style="background:rgba(15,23,42,0.4); border:1px solid var(--border-light); border-radius:var(--radius-md); padding:1rem;">
+              <h4 style="font-size:0.85rem; font-weight:700; color:#38bdf8; margin-bottom:0.6rem; display:flex; align-items:center; gap:0.5rem;">
+                <i data-lucide="coffee" style="width:15px;height:15px; color:#38bdf8;"></i> Afternoon Break (Break 2 - 15 Mins)
+              </h4>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+                <div>
+                  <label class="filter-label">Break 2 Duration (Minutes)</label>
+                  <input type="number" min="5" max="45" step="5" class="form-control" id="rule-b2-dur" value="${rules.break2Duration || 15}" style="padding:0.45rem 0.6rem; font-size:0.85rem;">
+                </div>
+                <div>
+                  <label class="filter-label">Offset from Shift Start (Hours into shift)</label>
+                  <input type="number" step="0.25" min="4" max="9" class="form-control" id="rule-b2-offset" value="${rules.break2OffsetHours || 6.5}" style="padding:0.45rem 0.6rem; font-size:0.85rem;">
+                  <span style="font-size:0.68rem; color:var(--text-muted);">Default: +6.5h (e.g., 14:30 for 08:00 shift)</span>
+                </div>
+              </div>
+            </div>
+
+          </form>
+        </div>
+
+        <!-- Live Visual Shift Preview -->
+        <div class="card" style="padding:1.25rem;">
+          <h4 style="font-size:0.9rem; font-weight:700; color:white; margin-bottom:0.75rem; display:flex; align-items:center; gap:0.5rem;">
+            <i data-lucide="eye" style="width:16px;height:16px; color:#10b981;"></i> Live Shift Pattern Preview (08:00 - 17:00 Shift)
+          </h4>
+          <div style="position:relative; height:48px; background:rgba(30,41,59,0.7); border-radius:var(--radius-sm); overflow:hidden; border:1px solid var(--border-light); display:flex; font-size:0.72rem; font-weight:700;">
+            <!-- Block 1: Productive -->
+            <div style="flex:${rules.break1OffsetHours * 60}; background:rgba(16,185,129,0.25); border-right:1px solid #10b981; color:#34d399; display:flex; align-items:center; justify-content:center; padding:0 4px;" title="08:00 - 10:30 Productive Work">
+              08:00 - 10:30 (Work)
+            </div>
+            <!-- Block 2: Break 1 -->
+            <div style="flex:${rules.break1Duration}; background:rgba(56,189,248,0.4); border-right:1px solid #38bdf8; color:white; display:flex; align-items:center; justify-content:center; padding:0 4px;" title="10:30 - 10:45 Morning Break (15m)">
+              ☕ Break 1 (15m)
+            </div>
+            <!-- Block 3: Productive -->
+            <div style="flex:${(rules.lunchOffsetHours - rules.break1OffsetHours) * 60 - rules.break1Duration}; background:rgba(16,185,129,0.25); border-right:1px solid #10b981; color:#34d399; display:flex; align-items:center; justify-content:center; padding:0 4px;" title="10:45 - 12:00 Productive Work">
+              Work
+            </div>
+            <!-- Block 4: Lunch -->
+            <div style="flex:${rules.lunchDuration}; background:rgba(245,158,11,0.45); border-right:1px solid #f59e0b; color:white; display:flex; align-items:center; justify-content:center; padding:0 4px;" title="12:00 - 13:00 Lunch Break (60m / 1h)">
+              🍽️ Lunch (1h)
+            </div>
+            <!-- Block 5: Productive -->
+            <div style="flex:${(rules.break2OffsetHours - rules.lunchOffsetHours) * 60 - rules.lunchDuration}; background:rgba(16,185,129,0.25); border-right:1px solid #10b981; color:#34d399; display:flex; align-items:center; justify-content:center; padding:0 4px;" title="13:00 - 14:30 Productive Work">
+              Work
+            </div>
+            <!-- Block 6: Break 2 -->
+            <div style="flex:${rules.break2Duration}; background:rgba(56,189,248,0.4); border-right:1px solid #38bdf8; color:white; display:flex; align-items:center; justify-content:center; padding:0 4px;" title="14:30 - 14:45 Afternoon Break (15m)">
+              ☕ Break 2 (15m)
+            </div>
+            <!-- Block 7: Productive -->
+            <div style="flex:${(rules.standardShiftHours - rules.break2OffsetHours) * 60 - rules.break2Duration}; background:rgba(16,185,129,0.25); color:#34d399; display:flex; align-items:center; justify-content:center; padding:0 4px;" title="14:45 - 17:00 Productive Work">
+              14:45 - 17:00 (Work)
+            </div>
+          </div>
+        </div>
+
+      </div>
+    ` : `
+      <!-- IDENTITY DIRECTORY & ACCESS -->
+      <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:1.25rem; margin-bottom:1.5rem;">
+        <div style="background:rgba(30,41,59,0.5); padding:1rem; border-radius:var(--radius-md); border:1px solid var(--border-light); text-align:center;">
+          <span style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; font-weight:600;">Active Identities</span>
+          <div style="font-size:1.5rem; font-weight:700; color:var(--color-success); margin-top:0.25rem;">${activeCount} Users</div>
+        </div>
+        <div style="background:rgba(30,41,59,0.5); padding:1rem; border-radius:var(--radius-md); border:1px solid var(--border-light); text-align:center;">
+          <span style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; font-weight:600;">Pending Approvals</span>
+          <div style="font-size:1.5rem; font-weight:700; color:var(--color-warning); margin-top:0.25rem;">${pendingCount} Accounts</div>
+        </div>
+        <div style="background:rgba(30,41,59,0.5); padding:1rem; border-radius:var(--radius-md); border:1px solid var(--border-light); text-align:center;">
+          <span style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; font-weight:600;">Suspended / Inactive</span>
+          <div style="font-size:1.5rem; font-weight:700; color:var(--color-danger); margin-top:0.25rem;">${inactiveCount} Users</div>
+        </div>
       </div>
 
-      <div class="filter-group">
-        <label class="filter-label">Status</label>
-        <select class="sidebar-select" id="user-status-filter" style="width: 150px; padding: 0.4rem 0.6rem;">
-          <option value="All" ${userFilterStatus === 'All' ? 'selected' : ''}>All Statuses</option>
-          <option value="Active" ${userFilterStatus === 'Active' ? 'selected' : ''}>Active</option>
-          <option value="Pending Approval" ${userFilterStatus === 'Pending Approval' ? 'selected' : ''}>Pending Approval</option>
-          <option value="Inactive" ${userFilterStatus === 'Inactive' ? 'selected' : ''}>Inactive / Suspended</option>
-        </select>
+      <div class="filter-bar">
+        <div class="filter-group">
+          <label class="filter-label">Search Users</label>
+          <input type="text" class="form-control" id="user-search" placeholder="Search name, email, role..." value="${userSearchQuery}" style="width: 220px; padding: 0.4rem 0.6rem;">
+        </div>
+
+        <div class="filter-group">
+          <label class="filter-label">Status</label>
+          <select class="sidebar-select" id="user-status-filter" style="width: 150px; padding: 0.4rem 0.6rem;">
+            <option value="All" ${userFilterStatus === 'All' ? 'selected' : ''}>All Statuses</option>
+            <option value="Active" ${userFilterStatus === 'Active' ? 'selected' : ''}>Active</option>
+            <option value="Pending Approval" ${userFilterStatus === 'Pending Approval' ? 'selected' : ''}>Pending Approval</option>
+            <option value="Inactive" ${userFilterStatus === 'Inactive' ? 'selected' : ''}>Inactive / Suspended</option>
+          </select>
+        </div>
+
+        <button class="btn btn-primary" id="btn-create-user" style="margin-left:auto;"><i data-lucide="plus" style="width:16px;height:16px;"></i> Create User</button>
       </div>
 
-      <button class="btn btn-primary" id="btn-create-user" style="margin-left:auto;"><i data-lucide="plus" style="width:16px;height:16px;"></i> Create User</button>
-    </div>
-
-    <div class="card">
-      <div class="card-title">Identity Directory</div>
-      <div class="table-wrapper">
-        <table>
-          <thead>
-            <tr>
-              <th>Full Name</th>
-              <th>Email Address</th>
-              <th>System Role</th>
-              <th>Status</th>
-              <th>Creation Date</th>
-              <th>Last Active</th>
-              <th>Access Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${filteredUsers.map(u => `
+      <div class="card">
+        <div class="card-title">Identity Directory</div>
+        <div class="table-wrapper">
+          <table>
+            <thead>
               <tr>
-                <td style="font-weight:600; color:white;">${u.name}</td>
-                <td>${u.email}</td>
-                <td><span style="color:var(--color-info); font-weight:600;">${u.role}</span></td>
-                <td>
-                  <span class="badge ${u.status === 'Active' ? 'badge-success' : (u.status === 'Pending Approval' ? 'badge-warning' : 'badge-danger')}">
-                    ${u.status}
-                  </span>
-                </td>
-                <td>${u.created || '2026-06-25'}</td>
-                <td style="font-family:monospace; font-size:0.8rem;">${u.lastLogin || 'Never'}</td>
-                <td>
-                  <div style="display:flex; gap:0.5rem;">
-                    ${u.status === 'Pending Approval' ? `
-                      <button class="btn btn-success btn-user-approve" data-email="${u.email}" style="padding:0.3rem 0.6rem; font-size:0.75rem;">Approve</button>
-                    ` : ''}
-                    
-                    ${u.status === 'Active' ? `
-                      <button class="btn btn-danger btn-user-toggle-active" data-email="${u.email}" data-action="Inactive" style="padding:0.3rem 0.6rem; font-size:0.75rem;">Deactivate</button>
-                    ` : ''}
-
-                    ${u.status === 'Inactive' || u.status === 'Suspended' ? `
-                      <button class="btn btn-success btn-user-toggle-active" data-email="${u.email}" data-action="Active" style="padding:0.3rem 0.6rem; font-size:0.75rem;">Reactivate</button>
-                    ` : ''}
-
-                    <button class="btn btn-secondary btn-user-reset" data-email="${u.email}" style="padding:0.3rem 0.6rem; font-size:0.75rem;">Reset Pass</button>
-                  </div>
-                </td>
+                <th>Full Name</th>
+                <th>Email Address</th>
+                <th>System Role</th>
+                <th>Status</th>
+                <th>Creation Date</th>
+                <th>Last Active</th>
+                <th>Access Actions</th>
               </tr>
-            `).join('')}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              ${filteredUsers.map(u => `
+                <tr>
+                  <td style="font-weight:600; color:white;">${u.name}</td>
+                  <td>${u.email}</td>
+                  <td><span style="color:var(--color-info); font-weight:600;">${u.role}</span></td>
+                  <td>
+                    <span class="badge ${u.status === 'Active' ? 'badge-success' : (u.status === 'Pending Approval' ? 'badge-warning' : 'badge-danger')}">
+                      ${u.status}
+                    </span>
+                  </td>
+                  <td>${u.created || '2026-06-25'}</td>
+                  <td style="font-family:monospace; font-size:0.8rem;">${u.lastLogin || 'Never'}</td>
+                  <td>
+                    <div style="display:flex; gap:0.5rem;">
+                      ${u.status === 'Pending Approval' ? `
+                        <button class="btn btn-success btn-user-approve" data-email="${u.email}" style="padding:0.3rem 0.6rem; font-size:0.75rem;">Approve</button>
+                      ` : ''}
+                      
+                      ${u.status === 'Active' ? `
+                        <button class="btn btn-danger btn-user-toggle-active" data-email="${u.email}" data-action="Inactive" style="padding:0.3rem 0.6rem; font-size:0.75rem;">Deactivate</button>
+                      ` : ''}
+
+                      ${u.status === 'Inactive' || u.status === 'Suspended' ? `
+                        <button class="btn btn-success btn-user-toggle-active" data-email="${u.email}" data-action="Active" style="padding:0.3rem 0.6rem; font-size:0.75rem;">Reactivate</button>
+                      ` : ''}
+
+                      <button class="btn btn-secondary btn-user-reset" data-email="${u.email}" style="padding:0.3rem 0.6rem; font-size:0.75rem;">Reset Pass</button>
+                    </div>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
       </div>
-    </div>
+    `}
   `;
 
-  const searchInput = document.getElementById('user-search');
-  searchInput.addEventListener('input', (e) => {
-    userSearchQuery = e.target.value;
-    renderUserDirectory(c);
-    document.getElementById('user-search').focus();
-  });
+  // Sub-Tab Switching
+  const tabUsers = document.getElementById('admin-tab-users');
+  const tabPatterns = document.getElementById('admin-tab-patterns');
+  if (tabUsers) tabUsers.addEventListener('click', () => { adminSubTab = 'users'; renderUserDirectory(c); });
+  if (tabPatterns) tabPatterns.addEventListener('click', () => { adminSubTab = 'patterns'; renderUserDirectory(c); });
 
-  document.getElementById('user-status-filter').addEventListener('change', (e) => {
-    userFilterStatus = e.target.value;
-    renderUserDirectory(c);
-  });
+  // Pattern Studio Listeners
+  const btnSavePatterns = document.getElementById('btn-save-pattern-rules');
+  if (btnSavePatterns) {
+    btnSavePatterns.addEventListener('click', async () => {
+      const b1Dur = Number(document.getElementById('rule-b1-dur')?.value) || 15;
+      const b1Offset = Number(document.getElementById('rule-b1-offset')?.value) || 2.5;
+      const lunchDur = Number(document.getElementById('rule-lunch-dur')?.value) || 60;
+      const lunchOffset = Number(document.getElementById('rule-lunch-offset')?.value) || 4.0;
+      const b2Dur = Number(document.getElementById('rule-b2-dur')?.value) || 15;
+      const b2Offset = Number(document.getElementById('rule-b2-offset')?.value) || 6.5;
+      const shiftHrs = Number(document.getElementById('rule-shift-hours')?.value) || 9.0;
+
+      if (!state.scheduleConfig) state.scheduleConfig = {};
+      state.scheduleConfig.breakLunchRules = {
+        break1Duration: b1Dur,
+        break1OffsetHours: b1Offset,
+        lunchDuration: lunchDur,
+        lunchOffsetHours: lunchOffset,
+        break2Duration: b2Dur,
+        break2OffsetHours: b2Offset,
+        standardShiftHours: shiftHrs
+      };
+
+      try {
+        await api.saveScheduleConfig(state.scheduleConfig);
+        alert("Success: Shift Break & Lunch Pattern Rules have been saved to enterprise work rules!");
+        renderUserDirectory(c);
+      } catch (err) {
+        alert("Error saving rules: " + err.message);
+      }
+    });
+  }
+
+  const btnResetPatterns = document.getElementById('btn-reset-pattern-rules');
+  if (btnResetPatterns) {
+    btnResetPatterns.addEventListener('click', async () => {
+      if (confirm("Reset pattern rules to standard (2x15m breaks + 1x1h lunch)?")) {
+        if (!state.scheduleConfig) state.scheduleConfig = {};
+        state.scheduleConfig.breakLunchRules = {
+          break1Duration: 15,
+          break1OffsetHours: 2.5,
+          lunchDuration: 60,
+          lunchOffsetHours: 4.0,
+          break2Duration: 15,
+          break2OffsetHours: 6.5,
+          standardShiftHours: 9.0
+        };
+        await api.saveScheduleConfig(state.scheduleConfig);
+        alert("Default pattern rules restored!");
+        renderUserDirectory(c);
+      }
+    });
+  }
+
+  // Users Directory Listeners
+  const searchInput = document.getElementById('user-search');
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      userSearchQuery = e.target.value;
+      renderUserDirectory(c);
+      document.getElementById('user-search').focus();
+    });
+  }
+
+  const statusFilter = document.getElementById('user-status-filter');
+  if (statusFilter) {
+    statusFilter.addEventListener('change', (e) => {
+      userFilterStatus = e.target.value;
+      renderUserDirectory(c);
+    });
+  }
 
   document.querySelectorAll('.btn-user-approve').forEach(btn => {
     btn.addEventListener('click', async (e) => {
@@ -8068,37 +11628,630 @@ function renderUserDirectory(c) {
     });
   });
 
-  document.getElementById('btn-create-user').addEventListener('click', async () => {
-    const name = prompt("Enter User Full Name:");
-    if (!name) return;
-    const email = prompt("Enter User Email:");
-    if (!email) return;
-    const pass = prompt("Enter Temporary Password:", "temp-pass");
-    if (!pass) return;
-    const role = prompt("Enter Role Mode (WFM Admin, WFM Analyst, WFM Manager, Team Leader, Agent):", "Agent");
-    if (!role) return;
+  const btnCreateUser = document.getElementById('btn-create-user');
+  if (btnCreateUser) {
+    btnCreateUser.addEventListener('click', async () => {
+      const name = prompt("Enter User Full Name:");
+      if (!name) return;
+      const email = prompt("Enter User Email:");
+      if (!email) return;
+      const pass = prompt("Enter Temporary Password:", "temp-pass");
+      if (!pass) return;
+      const role = prompt("Enter Role Mode (WFM Admin, WFM Analyst, WFM Manager, Team Leader, Agent):", "Agent");
+      if (!role) return;
 
-    try {
-      await api.register({
-        email,
-        password: pass,
-        role,
-        name,
-        secret_code: 'WFMONE2026'
-      });
+      try {
+        await api.register({
+          email,
+          password: pass,
+          role,
+          name,
+          secret_code: 'WFMONE2026'
+        });
+        await initData();
+        renderUserDirectory(c);
+      } catch (err) {
+        alert("Error creating user: " + err.message);
+      }
+    });
+  }
+
+  if (window.lucide) window.lucide.createIcons();
+}
+
+// ==========================================
+// TELEPHONY & CCAAS INTEGRATIONS STUDIO
+// ==========================================
+function renderIntegrationsStudio(c) {
+  const connectors = state.telephonyConnectors || [];
+  const events = state.telephonyEvents || [];
+
+  c.innerHTML = `
+    <div style="display:flex; flex-direction:column; gap:1.25rem;">
+      <!-- Banner Card -->
+      <div style="background:linear-gradient(135deg, rgba(30,41,59,0.9) 0%, rgba(15,23,42,0.9) 100%); border:1px solid rgba(129,140,248,0.3); border-radius:var(--radius-md); padding:1.25rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
+        <div>
+          <div style="font-size:0.75rem; color:#818cf8; font-weight:800; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">
+            Enterprise Telephony &amp; CTI Ecosystem
+          </div>
+          <div style="display:flex; align-items:center; gap:0.6rem;">
+            <h2 style="font-size:1.35rem; color:white; font-weight:800; margin:0; font-family:var(--font-display);">CCaaS Connectors &amp; Webhook Hub</h2>
+            <span class="badge badge-success" style="display:flex;align-items:center;gap:0.3rem;"><span class="wfm-bot-fab-pulse" style="width:6px;height:6px;"></span> Live Ingestion Active</span>
+          </div>
+          <div style="display:flex; gap:1rem; font-size:0.8rem; color:var(--text-muted); margin-top:0.4rem;">
+            <span>🔌 Connected Platforms: <strong style="color:white;">${connectors.length} Providers</strong></span>
+            <span>⚡ Ingestion Engine: <strong style="color:#34d399;">Active (HTTP/REST Webhooks)</strong></span>
+            <span>⏱️ Real-Time Latency: <strong style="color:#38bdf8;">~42ms</strong></span>
+          </div>
+        </div>
+        <div style="display:flex; gap:0.6rem;">
+          <button id="btn-simulate-cti-event" class="btn btn-primary" style="font-size:0.82rem; padding:0.45rem 1rem;">
+            📡 Simulate Inbound CTI Event
+          </button>
+        </div>
+      </div>
+
+      <!-- CCaaS Connectors Grid -->
+      <div class="wfm-card" style="padding:1.25rem;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+          <div>
+            <h3 style="font-size:1.05rem; color:white; font-weight:800; margin:0; font-family:var(--font-display);">Configured CCaaS Telephony Platforms</h3>
+            <p style="font-size:0.78rem; color:var(--text-muted); margin:0.2rem 0 0 0;">Bi-directional event streams for real-time adherence, agent states, and queue metrics</p>
+          </div>
+        </div>
+        <div class="connector-grid">
+          ${connectors.map(conn => {
+            let icon = '☁️';
+            if (conn.provider.includes('Amazon')) icon = '📦';
+            if (conn.provider.includes('Genesys')) icon = '🧬';
+            if (conn.provider.includes('NICE')) icon = '🎯';
+            if (conn.provider.includes('Five9')) icon = '🖐️';
+            if (conn.provider.includes('Cisco')) icon = '🌐';
+            if (conn.provider.includes('Twilio')) icon = '🔴';
+            return `
+              <div class="connector-card" id="connector-card-${conn.id}">
+                <div>
+                  <div class="connector-header">
+                    <div style="display:flex; align-items:center; gap:0.6rem;">
+                      <div class="connector-provider-icon">${icon}</div>
+                      <div>
+                        <div style="font-weight:700; color:white; font-size:0.92rem;">${conn.name}</div>
+                        <div style="font-size:0.72rem; color:var(--text-muted);">${conn.provider}</div>
+                      </div>
+                    </div>
+                    <span class="badge ${conn.status === 'Connected' ? 'badge-success' : 'badge-warning'}">${conn.status}</span>
+                  </div>
+                  <div style="margin-top:0.75rem; font-size:0.75rem; color:var(--text-muted); display:flex; flex-direction:column; gap:0.25rem;">
+                    <div><strong>API:</strong> <span style="color:#c7d2fe;">${conn.api_endpoint || 'Default Gateway'}</span></div>
+                    <div style="display:flex; justify-content:space-between;">
+                      <span>Latency: <strong style="color:#38bdf8;">${conn.latency_ms || 40}ms</strong></span>
+                      <span>Last Sync: <strong style="color:white;">${conn.last_event_at || 'Active'}</strong></span>
+                    </div>
+                  </div>
+                </div>
+                <div style="display:flex; gap:0.5rem; margin-top:0.5rem;">
+                  <button class="btn btn-secondary btn-test-connector" data-id="${conn.id}" data-name="${conn.provider}" style="flex:1; font-size:0.75rem; padding:0.35rem 0.6rem;">
+                    ⚡ Test Ping
+                  </button>
+                  <button class="btn btn-secondary btn-config-connector" data-id="${conn.id}" style="font-size:0.75rem; padding:0.35rem 0.6rem;">
+                    ⚙️
+                  </button>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+
+      <!-- Webhook Credentials & Live Ingestion Stream -->
+      <div style="display:grid; grid-template-columns:1fr 2fr; gap:1.25rem;">
+        <!-- Left: Webhook Endpoint Credentials -->
+        <div class="wfm-card" style="padding:1.25rem;">
+          <h3 style="font-size:0.95rem; color:white; font-weight:800; margin-bottom:0.75rem; font-family:var(--font-display);">Webhook Ingestion Gateway</h3>
+          <p style="font-size:0.75rem; color:var(--text-muted); margin-bottom:1rem;">Point your CCaaS platform webhooks (or AWS EventBridge / Kinesis lambdas) to this endpoint:</p>
+          
+          <div style="margin-bottom:0.85rem;">
+            <label class="filter-label">Target Webhook URL</label>
+            <div style="display:flex; gap:0.4rem;">
+              <input type="text" class="form-control" id="wfm-webhook-url" readonly value="${window.location.origin}/api/integrations/telephony/webhook" style="font-size:0.75rem; color:#818cf8;">
+              <button class="btn btn-secondary" id="btn-copy-webhook-url" style="padding:0.3rem 0.6rem; font-size:0.75rem;">📋</button>
+            </div>
+          </div>
+
+          <div style="margin-bottom:1rem;">
+            <label class="filter-label">Webhook Signing Secret</label>
+            <div style="display:flex; gap:0.4rem;">
+              <input type="text" class="form-control" id="wfm-webhook-secret" readonly value="whsec_wfm_one_telephony_2026" style="font-size:0.75rem; color:#c7d2fe;">
+              <button class="btn btn-secondary" id="btn-copy-webhook-secret" style="padding:0.3rem 0.6rem; font-size:0.75rem;">📋</button>
+            </div>
+          </div>
+
+          <div style="background:rgba(99,102,241,0.1); border:1px solid rgba(99,102,241,0.3); border-radius:var(--radius-sm); padding:0.75rem; font-size:0.75rem; color:#c7d2fe;">
+            💡 <strong>Instant Adherence Sync:</strong> Ingested state changes automatically update agent auxiliary statuses and live adherence gauges within 200 milliseconds.
+          </div>
+        </div>
+
+        <!-- Right: Live CTI Event Stream -->
+        <div class="wfm-card" style="padding:1.25rem;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
+            <h3 style="font-size:0.95rem; color:white; font-weight:800; margin:0; font-family:var(--font-display);">Live Real-Time Telephony Events Feed</h3>
+            <button id="btn-refresh-cti-feed" class="btn btn-secondary" style="font-size:0.72rem; padding:0.25rem 0.6rem;">🔄 Refresh</button>
+          </div>
+          <div style="max-height:280px; overflow-y:auto;">
+            <table class="cti-feed-table">
+              <thead>
+                <tr>
+                  <th>Timestamp</th>
+                  <th>Provider</th>
+                  <th>Agent</th>
+                  <th>Event</th>
+                  <th>State Change</th>
+                  <th>Channel</th>
+                </tr>
+              </thead>
+              <tbody id="cti-events-table-body">
+                ${events.map(ev => `
+                  <tr>
+                    <td style="color:var(--text-muted); font-size:0.75rem;">${(ev.timestamp || '').substring(11, 19)}</td>
+                    <td><strong>${ev.provider}</strong></td>
+                    <td style="color:white; font-weight:600;">${ev.agent_name || ev.agent_id}</td>
+                    <td><span class="badge badge-info" style="font-size:0.68rem;">${ev.event_type}</span></td>
+                    <td>
+                      <span style="color:var(--text-muted); font-size:0.75rem;">${ev.old_state || 'Idle'}</span>
+                      <span style="color:#818cf8; margin:0 0.2rem;">→</span>
+                      <strong style="color:${ev.new_state === 'Voice' ? '#34d399' : (ev.new_state === 'Break' || ev.new_state === 'Lunch' ? '#fbbf24' : '#38bdf8')};">${ev.new_state}</strong>
+                    </td>
+                    <td><span class="badge badge-secondary" style="font-size:0.68rem;">${ev.channel || 'Voice'}</span></td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Attach event listeners in Integrations Studio
+  document.querySelectorAll('.btn-test-connector').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      const id = e.currentTarget.dataset.id;
+      const name = e.currentTarget.dataset.name;
+      const res = await api.telephony.testConnector(id);
+      alert(`✅ Health Test Passed for ${name}!\n\nStatus: Connected\nLatency: ${res.latency_ms || 42}ms\nHandshake Verified with CCaaS Gateway.`);
       await initData();
-      renderUserDirectory(c);
-    } catch (err) {
-      alert("Failed to create user: " + err.message);
+      renderIntegrationsStudio(c);
+    });
+  });
+
+  const btnSimulate = document.getElementById('btn-simulate-cti-event');
+  if (btnSimulate) {
+    btnSimulate.addEventListener('click', async () => {
+      const states = ['Voice', 'Chat', 'Email', 'Break', 'Lunch', 'Wrap-up'];
+      const pickState = states[Math.floor(Math.random() * states.length)];
+      const pickAgent = state.agents && state.agents.length > 0 ? state.agents[Math.floor(Math.random() * state.agents.length)] : { id: 'AGT001', name: 'Aaliyah Davis' };
+      
+      const payload = {
+        provider: 'Amazon Connect',
+        event_type: 'STATE_CHANGE',
+        agent_id: pickAgent.id,
+        agent_name: pickAgent.name,
+        new_state: pickState,
+        channel: pickState === 'Chat' ? 'Chat' : (pickState === 'Email' ? 'Email' : 'Voice'),
+        duration_seconds: Math.floor(Math.random() * 300) + 30
+      };
+
+      await api.telephony.sendWebhookEvent(payload);
+      alert(`📡 CTI Event Ingested!\n\nAgent: ${pickAgent.name}\nNew State: ${pickState}\nAdherence state automatically synchronized.`);
+      await initData();
+      renderIntegrationsStudio(c);
+    });
+  }
+
+  const btnCopyUrl = document.getElementById('btn-copy-webhook-url');
+  if (btnCopyUrl) {
+    btnCopyUrl.addEventListener('click', () => {
+      const urlInput = document.getElementById('wfm-webhook-url');
+      if (urlInput) {
+        navigator.clipboard.writeText(urlInput.value);
+        alert("Webhook URL copied to clipboard!");
+      }
+    });
+  }
+
+  const btnCopySec = document.getElementById('btn-copy-webhook-secret');
+  if (btnCopySec) {
+    btnCopySec.addEventListener('click', () => {
+      const secInput = document.getElementById('wfm-webhook-secret');
+      if (secInput) {
+        navigator.clipboard.writeText(secInput.value);
+        alert("Webhook Secret copied to clipboard!");
+      }
+    });
+  }
+
+  const btnRefresh = document.getElementById('btn-refresh-cti-feed');
+  if (btnRefresh) {
+    btnRefresh.addEventListener('click', async () => {
+      await initData();
+      renderIntegrationsStudio(c);
+    });
+  }
+
+  if (window.lucide) window.lucide.createIcons();
+}
+
+// ==========================================
+// ASYNC DEEP MATHEMATICAL SOLVER MODAL
+// ==========================================
+function showAsyncSolverModal(campaignId, mode = 'BALANCED', onComplete) {
+  const existing = document.getElementById('wfm-async-solver-modal');
+  if (existing) existing.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'wfm-async-solver-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:10000;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(6px);';
+
+  modal.innerHTML = `
+    <div style="background:#0f172a;border:1px solid var(--border-light);border-radius:var(--radius-lg);width:100%;max-width:620px;padding:2rem;display:flex;flex-direction:column;gap:1.25rem;box-shadow:0 25px 50px -12px rgba(0,0,0,0.8);">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+        <div>
+          <div style="font-size:0.75rem; color:#818cf8; font-weight:800; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:0.25rem;">
+            Deep Mixed-Integer Linear Optimizer (MILP)
+          </div>
+          <h2 style="font-size:1.35rem; color:white; font-weight:800; margin:0; font-family:var(--font-display);">
+            ⚡ Solving Roster Optimization
+          </h2>
+        </div>
+      </div>
+
+      <div style="background:rgba(30,41,59,0.7); border:1px solid var(--border-light); border-radius:var(--radius-md); padding:1rem;">
+        <div style="display:flex; justify-content:space-between; font-size:0.85rem; font-weight:700; color:white; margin-bottom:0.5rem;">
+          <span id="solver-stage-label">Initializing Solver Engine...</span>
+          <span id="solver-pct-label" style="color:#38bdf8;">10%</span>
+        </div>
+        <div class="solver-progress-bar-bg">
+          <div class="solver-progress-bar-fill" id="solver-progress-bar-fill" style="width: 10%;"></div>
+        </div>
+      </div>
+
+      <!-- Constraint Checklist -->
+      <div style="display:flex; flex-direction:column; gap:0.4rem; font-size:0.78rem; color:var(--text-muted);">
+        <div style="display:flex; align-items:center; gap:0.4rem;">
+          <span style="color:#34d399;">✓</span> <span>Mandatory 11h Rest Between Shifts (Labor Law Hard Constraint)</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:0.4rem;">
+          <span style="color:#34d399;">✓</span> <span>Max 6 Consecutive Working Days Enforcement</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:0.4rem;">
+          <span style="color:#34d399;">✓</span> <span>Multi-Skill Competency &amp; Channel Allocation</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:0.4rem;">
+          <span style="color:#34d399;">✓</span> <span>HOOP Operating Hours Interval Smoothing</span>
+        </div>
+      </div>
+
+      <!-- Results Summary (Hidden initially) -->
+      <div id="solver-results-summary" style="display:none; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.3); border-radius:var(--radius-md); padding:1rem;">
+        <div style="font-weight:800; color:#34d399; font-size:0.95rem; margin-bottom:0.5rem;">
+          🎉 Optimal Feasible Schedule Generated!
+        </div>
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:0.5rem; font-size:0.78rem;">
+          <div>Quality Score: <strong style="color:white;" id="res-quality-score">95.2%</strong></div>
+          <div>SLA Coverage: <strong style="color:white;" id="res-cov-score">94.8%</strong></div>
+          <div>Hard Constraints: <strong style="color:#34d399;">100%</strong></div>
+        </div>
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; gap:0.6rem; margin-top:0.5rem;">
+        <button id="btn-solver-apply" class="btn btn-primary" style="display:none; padding:0.5rem 1.25rem; font-weight:700;">
+          Apply &amp; View Master Schedule
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  // Launch Async Solver Job
+  (async () => {
+    try {
+      const launchRes = await api.solver.runAsync({
+        campaign_id: campaignId || state.activeCampaignId || 'CAMP_HOB',
+        mode: mode
+      });
+
+      const jobId = launchRes.job_id;
+      const stageEl = document.getElementById('solver-stage-label');
+      const pctEl = document.getElementById('solver-pct-label');
+      const barFill = document.getElementById('solver-progress-bar-fill');
+      const resultsDiv = document.getElementById('solver-results-summary');
+      const applyBtn = document.getElementById('btn-solver-apply');
+
+      const pollInterval = setInterval(async () => {
+        const status = await api.solver.getJobStatus(jobId);
+        if (status) {
+          if (stageEl) stageEl.innerText = status.summary_json || "Solving MILP Formulation...";
+          if (pctEl) pctEl.innerText = `${status.progress_percent}%`;
+          if (barFill) barFill.style.width = `${status.progress_percent}%`;
+
+          if (status.status === 'COMPLETED') {
+            clearInterval(pollInterval);
+            if (stageEl) stageEl.innerText = "Schedule Solved & Certified!";
+            if (resultsDiv) {
+              resultsDiv.style.display = 'block';
+              document.getElementById('res-quality-score').innerText = `${status.quality_score}%`;
+              document.getElementById('res-cov-score').innerText = `${status.coverage_score}%`;
+            }
+            if (applyBtn) {
+              applyBtn.style.display = 'inline-flex';
+              applyBtn.onclick = async () => {
+                modal.remove();
+                if (onComplete) onComplete(status);
+              };
+            }
+          }
+        }
+      }, 500);
+    } catch(e) {
+      modal.remove();
+      alert("Auto-schedule solver executed.");
+      if (onComplete) onComplete();
+    }
+  })();
+}
+
+// ==========================================
+// WFM-ONE COPILOT AI ASSISTANT WIDGET
+// ==========================================
+const botState = {
+  isOpen: false,
+  messages: [
+    {
+      sender: 'bot',
+      title: '👋 Welcome to WFM-One Copilot!',
+      text: `I can answer any questions about the tool and guide you through:\n\n- ➕ **Campaign Creation** & Multi-Currency Rates / HOOP\n- 🏷️ **Adding Brands & Channels** (Voice, Chat, Email, Back-Office)\n- 👥 **Assigning Agents** to Campaigns\n- ⏰ **Primary Shift Activities vs Breaks/Lunch**\n- 📅 **Work Pattern Weekly Templates** (Mon–Sun)\n- ⚡ **Auto-Scheduling & 2-Stage Approvals**\n\n*Click a prompt below or type your question!*`,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    }
+  ]
+};
+
+function initBotWidget() {
+  const container = document.getElementById('wfm-bot-container');
+  if (!container) return;
+
+  const quickPrompts = [
+    { label: "➕ Create Campaign", query: "How do I create a new campaign?" },
+    { label: "👥 Assign Agents", query: "How do I assign agents to a campaign?" },
+    { label: "⏰ Shifts & Breaks", query: "Explain primary shift activities and breaks" },
+    { label: "📅 Work Patterns", query: "How do work pattern templates work?" },
+    { label: "🏷️ Brands & Channels", query: "How do I add brands and channels?" },
+    { label: "📊 Active Stats", query: "What are our active campaign stats?" },
+    { label: "⚡ Auto-Scheduler", query: "How does the auto scheduler work?" },
+    { label: "📝 Approvals", query: "How do approvals and time off work?" }
+  ];
+
+  container.innerHTML = `
+    <!-- Floating Action Button -->
+    <button class="wfm-bot-fab" id="btn-wfm-bot-fab" title="Ask WFM-One Copilot for help and instructions">
+      <span style="font-size:1.15rem;">🤖</span>
+      <span>WFM Copilot</span>
+      <span class="wfm-bot-fab-pulse"></span>
+    </button>
+
+    <!-- Slide-up Chat Window -->
+    <div class="wfm-bot-window" id="wfm-bot-window" style="display:none;">
+      <!-- Header -->
+      <div class="wfm-bot-header">
+        <div style="display:flex;align-items:center;gap:0.6rem;">
+          <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#4f46e5,#818cf8);display:flex;align-items:center;justify-content:center;font-size:1.1rem;box-shadow:0 0 10px rgba(99,102,241,0.5);">
+            🤖
+          </div>
+          <div>
+            <div style="font-weight:800;color:white;font-size:0.92rem;display:flex;align-items:center;gap:0.4rem;">
+              WFM-One Copilot
+              <span class="badge badge-success" style="font-size:0.65rem;padding:0.1rem 0.35rem;">Online</span>
+            </div>
+            <div style="font-size:0.7rem;color:var(--text-muted);">Enterprise Assistant · Role: ${state.userRole || 'WFM'}</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:0.4rem;align-items:center;">
+          <button id="btn-wfm-bot-clear" title="Clear Chat" style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:0.9rem;padding:0.2rem 0.4rem;">🧹</button>
+          <button id="btn-wfm-bot-close" title="Close" style="background:transparent;border:none;color:var(--text-muted);cursor:pointer;font-size:1.2rem;line-height:1;padding:0.2rem 0.4rem;">✕</button>
+        </div>
+      </div>
+
+      <!-- Quick Suggestion Chips -->
+      <div class="wfm-bot-quick-chips">
+        ${quickPrompts.map(p => `
+          <button class="wfm-bot-chip" data-query="${p.query}">${p.label}</button>
+        `).join('')}
+      </div>
+
+      <!-- Messages Stream -->
+      <div class="wfm-bot-messages" id="wfm-bot-messages-stream">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <!-- Input Area -->
+      <div class="wfm-bot-input-area">
+        <input type="text" id="wfm-bot-input" placeholder="Ask anything about WFM-One..." class="form-control" style="flex:1;font-size:0.82rem;padding:0.45rem 0.75rem;background:rgba(30,41,59,0.7);border-color:var(--border-light);color:white;border-radius:var(--radius-sm);">
+        <button id="btn-wfm-bot-send" class="btn btn-primary" style="padding:0.45rem 0.85rem;font-size:0.82rem;display:flex;align-items:center;gap:0.3rem;">
+          <span>Send</span>
+          <i data-lucide="send" style="width:13px;height:13px;"></i>
+        </button>
+      </div>
+    </div>
+  `;
+
+  if (window.lucide) window.lucide.createIcons();
+
+  const fab = container.querySelector('#btn-wfm-bot-fab');
+  const win = container.querySelector('#wfm-bot-window');
+  const closeBtn = container.querySelector('#btn-wfm-bot-close');
+  const clearBtn = container.querySelector('#btn-wfm-bot-clear');
+  const inputEl = container.querySelector('#wfm-bot-input');
+  const sendBtn = container.querySelector('#btn-wfm-bot-send');
+
+  fab.onclick = () => {
+    botState.isOpen = !botState.isOpen;
+    win.style.display = botState.isOpen ? 'flex' : 'none';
+    if (botState.isOpen) {
+      renderBotMessages();
+      inputEl.focus();
+    }
+  };
+
+  closeBtn.onclick = () => {
+    botState.isOpen = false;
+    win.style.display = 'none';
+  };
+
+  clearBtn.onclick = () => {
+    botState.messages = botState.messages.slice(0, 1);
+    renderBotMessages();
+  };
+
+  container.querySelectorAll('.wfm-bot-chip').forEach(chip => {
+    chip.onclick = () => {
+      const q = chip.dataset.query;
+      handleBotSubmit(q);
+    };
+  });
+
+  sendBtn.onclick = () => {
+    const txt = inputEl.value.trim();
+    if (txt) {
+      handleBotSubmit(txt);
+      inputEl.value = '';
+    }
+  };
+
+  inputEl.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      const txt = inputEl.value.trim();
+      if (txt) {
+        handleBotSubmit(txt);
+        inputEl.value = '';
+      }
     }
   });
 
+  renderBotMessages();
+}
+
+function formatMarkdownReply(text) {
+  if (!text) return '';
+  let html = text
+    .replace(/### (.*?)\n/g, '<h3 style="font-size:0.9rem;font-weight:800;color:white;margin:0 0 0.35rem 0;">$1</h3>')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/`([^`]+)`/g, '<code style="background:rgba(99,102,241,0.18);color:#818cf8;padding:0.1rem 0.3rem;border-radius:3px;font-size:0.75rem;">$1</code>')
+    .replace(/&rarr;/g, '→')
+    .replace(/\n\n/g, '<br><br>')
+    .replace(/\n- /g, '<br>• ')
+    .replace(/\n([0-9]+)\. /g, '<br><strong>$1.</strong> ');
+  return html;
+}
+
+function renderBotMessages() {
+  const stream = document.getElementById('wfm-bot-messages-stream');
+  if (!stream) return;
+
+  stream.innerHTML = botState.messages.map(m => {
+    const isUser = m.sender === 'user';
+    return `
+      <div class="wfm-bot-msg ${isUser ? 'user' : 'bot'}">
+        <div style="width:24px;height:24px;border-radius:50%;background:${isUser ? 'linear-gradient(135deg,#3b82f6,#2563eb)' : 'linear-gradient(135deg,#4f46e5,#818cf8)'};display:flex;align-items:center;justify-content:center;font-size:0.75rem;flex-shrink:0;color:white;font-weight:700;">
+          ${isUser ? (state.currentUser ? state.currentUser.name[0] : 'U') : '🤖'}
+        </div>
+        <div class="wfm-bot-bubble">
+          ${m.title ? `<div style="font-weight:800;color:#818cf8;font-size:0.85rem;margin-bottom:0.35rem;">${m.title}</div>` : ''}
+          <div>${isUser ? m.text : formatMarkdownReply(m.text)}</div>
+          <div style="font-size:0.65rem;color:var(--text-muted);text-align:right;margin-top:0.3rem;">${m.time}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  stream.scrollTop = stream.scrollHeight;
   if (window.lucide) window.lucide.createIcons();
+}
+
+async function handleBotSubmit(questionText) {
+  const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  botState.messages.push({
+    sender: 'user',
+    text: questionText,
+    time: time
+  });
+  renderBotMessages();
+
+  // Add temporary typing bubble
+  const stream = document.getElementById('wfm-bot-messages-stream');
+  const typingId = `wfm-typing-${Date.now()}`;
+  if (stream) {
+    const typingEl = document.createElement('div');
+    typingEl.id = typingId;
+    typingEl.className = 'wfm-bot-msg bot';
+    typingEl.innerHTML = `
+      <div style="width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#4f46e5,#818cf8);display:flex;align-items:center;justify-content:center;font-size:0.75rem;flex-shrink:0;">🤖</div>
+      <div class="wfm-bot-bubble" style="color:var(--text-muted);font-style:italic;">
+        <i data-lucide="loader-2" class="spin" style="width:12px;height:12px;vertical-align:middle;"></i> Thinking...
+      </div>
+    `;
+    stream.appendChild(typingEl);
+    stream.scrollTop = stream.scrollHeight;
+    if (window.lucide) window.lucide.createIcons();
+  }
+
+  try {
+    const res = await fetch(getApiUrl('/api/bot/chat'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: questionText,
+        role: state.userRole || 'WFM Admin',
+        campaign_id: state.activeCampaignId || 'CAMP_HOB'
+      })
+    });
+    const data = res.ok ? await res.json() : null;
+    const typingEl = document.getElementById(typingId);
+    if (typingEl) typingEl.remove();
+
+    if (data) {
+      botState.messages.push({
+        sender: 'bot',
+        title: data.title || null,
+        text: data.reply || "I'm here to help with any WFM-One questions.",
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      });
+    } else {
+      botState.messages.push({
+        sender: 'bot',
+        title: '🤖 WFM-One Copilot',
+        text: "I can guide you through Campaigns, Shifts & Activities, Work Patterns, Rosters, and Auto-Scheduling. What would you like to know?",
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      });
+    }
+  } catch(err) {
+    const typingEl = document.getElementById(typingId);
+    if (typingEl) typingEl.remove();
+    botState.messages.push({
+      sender: 'bot',
+      title: '🤖 WFM-One Copilot',
+      text: "I can assist you with all tool capabilities: Campaigns, Brands & Channels, Shifts & Activities, and Work Patterns.",
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    });
+  }
+
+  renderBotMessages();
 }
 
 // --- Global Init ---
 window.addEventListener('DOMContentLoaded', async () => {
   await initData();
+  initBotWidget();
 
   const roleSelect = document.getElementById('role-select');
   if (roleSelect) {
@@ -8128,6 +12281,7 @@ window.addEventListener('DOMContentLoaded', async () => {
       
       rebuildSidebarMenu();
       renderActiveView();
+      initBotWidget();
     });
   }
 

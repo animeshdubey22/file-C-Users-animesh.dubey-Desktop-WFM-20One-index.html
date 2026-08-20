@@ -12,17 +12,10 @@
     <!-- Lucide Icons CDN -->
     <script src="https://unpkg.com/lucide@latest"></script>
     <!-- Stylesheet -->
-    <link rel="stylesheet" href="styles.css?v=20260820_v4">
+    <link rel="stylesheet" href="styles.css?v=20260820_v7">
   </head>
   <body>
 
-    <!-- Always-Visible Floating Theme Switcher Pill -->
-    <div id="floating-theme-switch-container" style="position: fixed; top: 1rem; right: 1.25rem; z-index: 999999;">
-      <button class="theme-toggle-btn floating-theme-btn" id="btn-floating-theme-toggle" title="Toggle Light / Dark Mode">
-        <i data-lucide="sun" style="width: 16px; height: 16px;"></i>
-        <span>Light Mode</span>
-      </button>
-    </div>
 
     <!-- Unified Login Screen Mount -->
     <div class="login-backdrop" id="login-screen">
@@ -76,6 +69,11 @@
           <div class="page-title-section">
             <h1 id="page-title">Operations Command Center</h1>
           </div>
+
+          <!-- Global Campaign Context Switcher -->
+          <div class="header-campaign-context" id="header-campaign-context" style="display: flex; align-items: center;">
+            <!-- Populated dynamically by app.js -->
+          </div>
           
           <div class="header-actions">
             <!-- Theme Toggle Button -->
@@ -116,7 +114,12 @@
 
     </div>
 
+    <!-- WFM-One Copilot AI Bot Mount -->
+    <div id="wfm-bot-container">
+      <!-- Rendered dynamically by app.js -->
+    </div>
+
     <!-- Core App Logic -->
-    <script src="app.js?v=20260820_v4"></script>
+    <script src="app.js?v=20260820_v7"></script>
   </body>
 </html>
