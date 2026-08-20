@@ -1423,19 +1423,33 @@ def action_schedule_workflow_request(action: ScheduleWorkflowRequestAction):
 # --- Static Frontend File Serving ---
 @app.get("/")
 def serve_root():
-    return FileResponse(os.path.join(STATIC_DIR, "index.html"))
+    return FileResponse(
+        os.path.join(STATIC_DIR, "index.html"),
+        headers={"Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache", "Expires": "0"}
+    )
 
 @app.get("/index.html")
 def serve_index():
-    return FileResponse(os.path.join(STATIC_DIR, "index.html"))
+    return FileResponse(
+        os.path.join(STATIC_DIR, "index.html"),
+        headers={"Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache", "Expires": "0"}
+    )
 
 @app.get("/styles.css")
 def serve_styles():
-    return FileResponse(os.path.join(STATIC_DIR, "styles.css"))
+    return FileResponse(
+        os.path.join(STATIC_DIR, "styles.css"),
+        media_type="text/css",
+        headers={"Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache", "Expires": "0"}
+    )
 
 @app.get("/app.js")
 def serve_app_js():
-    return FileResponse(os.path.join(STATIC_DIR, "app.js"))
+    return FileResponse(
+        os.path.join(STATIC_DIR, "app.js"),
+        media_type="application/javascript",
+        headers={"Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache", "Expires": "0"}
+    )
 
 if __name__ == "__main__":
     import uvicorn
