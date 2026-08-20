@@ -827,8 +827,15 @@ function renderLoginScreen() {
   }
 
   loginContainer.innerHTML = `
-    <div class="login-card">
-      <div class="login-header-logo">W1</div>
+    <div class="login-card" style="position:relative;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+        <div class="login-header-logo" style="margin:0;">W1</div>
+        <button type="button" class="theme-toggle-btn" style="padding:0.35rem 0.75rem; font-size:0.78rem;" title="Toggle Light / Dark Mode">
+          <i data-lucide="sun" style="width:14px;height:14px;"></i>
+          <span>Light Mode</span>
+        </button>
+      </div>
+
       <h2 class="login-title">WFM-One Login</h2>
       <p class="login-subtitle">Enter your registered credentials to access your portal</p>
 
@@ -870,6 +877,8 @@ function renderLoginScreen() {
       </div>
     </div>
   `;
+
+  if (window.lucide) window.lucide.createIcons();
 
   document.getElementById('link-go-register').addEventListener('click', (e) => {
     e.preventDefault();
@@ -917,8 +926,15 @@ function renderLoginScreen() {
 
 function renderRegistrationForm(container) {
   container.innerHTML = `
-    <div class="login-card">
-      <div class="login-header-logo">W1</div>
+    <div class="login-card" style="position:relative;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+        <div class="login-header-logo" style="margin:0;">W1</div>
+        <button type="button" class="theme-toggle-btn" style="padding:0.35rem 0.75rem; font-size:0.78rem;" title="Toggle Light / Dark Mode">
+          <i data-lucide="sun" style="width:14px;height:14px;"></i>
+          <span>Light Mode</span>
+        </button>
+      </div>
+
       <h2 class="login-title">Register Account</h2>
       <p class="login-subtitle">Register a brand new identity inside WFM-One</p>
 
@@ -7482,32 +7498,44 @@ function initTheme() {
   const savedTheme = localStorage.getItem('wfm_theme') || 'dark';
   applyTheme(savedTheme);
 
-  const toggleBtn = document.getElementById('btn-theme-toggle');
-  if (toggleBtn) {
-    toggleBtn.addEventListener('click', () => {
+  // Global click delegate for all theme toggle buttons
+  document.addEventListener('click', (e) => {
+    const toggleBtn = e.target.closest('.theme-toggle-btn') || 
+                      e.target.closest('#btn-theme-toggle') || 
+                      e.target.closest('#btn-floating-theme-toggle') || 
+                      e.target.closest('#btn-sidebar-theme-toggle');
+    if (toggleBtn) {
       const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
       const newTheme = currentTheme === 'light' ? 'dark' : 'light';
       applyTheme(newTheme);
-    });
-  }
+    }
+  });
 }
 
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
+  if (document.body) {
+    document.body.setAttribute('data-theme', theme);
+  }
   localStorage.setItem('wfm_theme', theme);
 
-  const toggleBtn = document.getElementById('btn-theme-toggle');
-  if (toggleBtn) {
+  document.querySelectorAll('.theme-toggle-btn').forEach(btn => {
     if (theme === 'light') {
-      toggleBtn.innerHTML = `<i data-lucide="moon" style="width:15px;height:15px;"></i> <span>Dark Mode</span>`;
-      toggleBtn.classList.add('is-light');
-      toggleBtn.title = "Switch to Dark Mode";
+      btn.innerHTML = `<i data-lucide="moon" style="width:16px;height:16px;"></i> <span>Dark Mode</span>`;
+      btn.classList.add('is-light');
+      btn.title = "Switch to Dark Mode";
     } else {
-      toggleBtn.innerHTML = `<i data-lucide="sun" style="width:15px;height:15px;"></i> <span>Light Mode</span>`;
-      toggleBtn.classList.remove('is-light');
-      toggleBtn.title = "Switch to Light Mode";
+      btn.innerHTML = `<i data-lucide="sun" style="width:16px;height:16px;"></i> <span>Light Mode</span>`;
+      btn.classList.remove('is-light');
+      btn.title = "Switch to Light Mode";
     }
-    if (window.lucide) window.lucide.createIcons();
-  }
+  });
+  if (window.lucide) window.lucide.createIcons();
 }
+
+// Immediate theme application before DOM fully renders to prevent flash
+(function() {
+  const t = localStorage.getItem('wfm_theme') || 'dark';
+  document.documentElement.setAttribute('data-theme', t);
+})();
 

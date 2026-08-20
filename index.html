@@ -16,6 +16,14 @@
   </head>
   <body>
 
+    <!-- Always-Visible Floating Theme Switcher Pill -->
+    <div id="floating-theme-switch-container" style="position: fixed; top: 1rem; right: 1.25rem; z-index: 999999;">
+      <button class="theme-toggle-btn floating-theme-btn" id="btn-floating-theme-toggle" title="Toggle Light / Dark Mode">
+        <i data-lucide="sun" style="width: 16px; height: 16px;"></i>
+        <span>Light Mode</span>
+      </button>
+    </div>
+
     <!-- Unified Login Screen Mount -->
     <div class="login-backdrop" id="login-screen">
       <!-- Generated dynamically by app.js -->
@@ -32,6 +40,14 @@
             <h2 class="brand-title">WFM-One</h2>
             <span class="brand-subtitle">House of Brands</span>
           </div>
+        </div>
+
+        <!-- Sidebar Quick Theme Toggle -->
+        <div style="margin-bottom: 1rem;">
+          <button class="theme-toggle-btn" id="btn-sidebar-theme-toggle" style="width: 100%; justify-content: center; padding: 0.5rem;" title="Toggle Light / Dark Mode">
+            <i data-lucide="sun" style="width: 15px; height: 15px;"></i>
+            <span>Light Mode</span>
+          </button>
         </div>
 
         <!-- Role / Persona switcher (Only displayed for Admins to simulate roles) -->

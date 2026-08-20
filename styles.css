@@ -2794,6 +2794,39 @@ tr:hover td {
   color: #0f172a;
 }
 
+.floating-theme-btn {
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1.5px solid rgba(99, 102, 241, 0.4);
+  color: #ffffff;
+  padding: 0.55rem 1.15rem;
+  font-size: 0.88rem;
+  border-radius: 9999px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4), 0 0 15px rgba(99, 102, 241, 0.3);
+}
+
+.floating-theme-btn:hover {
+  background: rgba(99, 102, 241, 0.3);
+  border-color: #818cf8;
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.5), 0 0 20px rgba(99, 102, 241, 0.5);
+}
+
+.floating-theme-btn.is-light {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1.5px solid rgba(79, 70, 229, 0.3);
+  color: #0f172a;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12), 0 0 15px rgba(79, 70, 229, 0.15);
+}
+
+.floating-theme-btn.is-light:hover {
+  background: #ffffff;
+  border-color: #4f46e5;
+  color: #4f46e5;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.15), 0 0 20px rgba(79, 70, 229, 0.25);
+}
+
 /* ------------------------------------------
    LIGHT THEME DESIGN TOKENS & OVERRIDES
    ------------------------------------------ */
