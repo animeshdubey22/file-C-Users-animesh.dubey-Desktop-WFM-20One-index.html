@@ -386,13 +386,37 @@ const api = {
     } catch (e) { return state.scheduleOverrides || []; }
   },
   async saveScheduleOverride(data) {
+    const dates = data.dates || (data.date ? [data.date] : []);
+    const applyLocal = () => {
+      dates.forEach(dt => {
+        const exIdx = (state.scheduleOverrides || []).findIndex(o => o.agent_id === data.agent_id && o.date === dt);
+        const item = {
+          agent_id: data.agent_id,
+          agent_name: data.agent_name,
+          date: dt,
+          shift_start: data.shift_start,
+          shift_end: data.shift_end,
+          is_week_off: !!data.is_week_off,
+          leave_type: null,
+          leave_start: null,
+          leave_end: null,
+          activities: data.activities || [],
+          reason: data.reason || 'Manual Shift Change',
+          comments: data.comments || '',
+          modified_by: data.changed_by || 'WFM Admin',
+          modified_at: new Date().toISOString()
+        };
+        if (!state.scheduleOverrides) state.scheduleOverrides = [];
+        if (exIdx !== -1) {
+          state.scheduleOverrides[exIdx] = { ...state.scheduleOverrides[exIdx], ...item };
+        } else {
+          state.scheduleOverrides.push(item);
+        }
+      });
+    };
+
     if (window.location.protocol === 'file:') {
-      const exIdx = state.scheduleOverrides.findIndex(o => o.agent_id === data.agent_id && o.date === data.date);
-      if (exIdx !== -1) {
-        state.scheduleOverrides[exIdx] = { ...state.scheduleOverrides[exIdx], ...data };
-      } else {
-        state.scheduleOverrides.push(data);
-      }
+      applyLocal();
       return { success: true };
     }
     try {
@@ -401,24 +425,45 @@ const api = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
       });
-      if (!res.ok) throw new Error('Failed to save schedule override');
-      return res.json();
+      if (res.ok) {
+        applyLocal();
+        return await res.json();
+      }
+      applyLocal();
+      return { success: true };
     } catch (e) {
-      const exIdx = state.scheduleOverrides.findIndex(o => o.agent_id === data.agent_id && o.date === data.date);
-      if (exIdx !== -1) state.scheduleOverrides[exIdx] = { ...state.scheduleOverrides[exIdx], ...data };
-      else state.scheduleOverrides.push(data);
+      applyLocal();
       return { success: true };
     }
   },
   async slideSchedule(data) {
+    const dates = data.dates || (data.date ? [data.date] : []);
+    const applyLocal = () => {
+      dates.forEach(dt => {
+        const exIdx = (state.scheduleOverrides || []).findIndex(o => o.agent_id === data.agent_id && o.date === dt);
+        if (!state.scheduleOverrides) state.scheduleOverrides = [];
+        if (exIdx !== -1) {
+          state.scheduleOverrides[exIdx].shift_start = data.new_start;
+          state.scheduleOverrides[exIdx].shift_end = data.new_end;
+          state.scheduleOverrides[exIdx].is_week_off = false;
+          state.scheduleOverrides[exIdx].leave_type = null;
+        } else {
+          state.scheduleOverrides.push({
+            agent_id: data.agent_id,
+            agent_name: data.agent_name,
+            date: dt,
+            shift_start: data.new_start,
+            shift_end: data.new_end,
+            is_week_off: false,
+            modified_by: data.changed_by || 'WFM Admin',
+            reason: data.reason || 'Shift Slide'
+          });
+        }
+      });
+    };
+
     if (window.location.protocol === 'file:') {
-      const ex = state.scheduleOverrides.find(o => o.agent_id === data.agent_id && o.date === data.date);
-      if (ex) {
-        ex.shift_start = data.new_start;
-        ex.shift_end = data.new_end;
-      } else {
-        state.scheduleOverrides.push({ agent_id: data.agent_id, date: data.date, shift_start: data.new_start, shift_end: data.new_end });
-      }
+      applyLocal();
       return { success: true };
     }
     try {
@@ -427,20 +472,47 @@ const api = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
       });
-      if (!res.ok) throw new Error('Failed to slide schedule');
-      return res.json();
+      if (res.ok) {
+        applyLocal();
+        return await res.json();
+      }
+      applyLocal();
+      return { success: true };
     } catch (e) {
-      const ex = state.scheduleOverrides.find(o => o.agent_id === data.agent_id && o.date === data.date);
-      if (ex) { ex.shift_start = data.new_start; ex.shift_end = data.new_end; }
-      else state.scheduleOverrides.push({ agent_id: data.agent_id, date: data.date, shift_start: data.new_start, shift_end: data.new_end });
+      applyLocal();
       return { success: true };
     }
   },
   async updateWeekOff(data) {
+    const dates = data.dates || (data.date ? [data.date] : []);
+    const applyLocal = () => {
+      dates.forEach(dt => {
+        const exIdx = (state.scheduleOverrides || []).findIndex(o => o.agent_id === data.agent_id && o.date === dt);
+        if (!state.scheduleOverrides) state.scheduleOverrides = [];
+        if (exIdx !== -1) {
+          state.scheduleOverrides[exIdx].is_week_off = data.is_week_off;
+          if (data.is_week_off) {
+            state.scheduleOverrides[exIdx].shift_start = null;
+            state.scheduleOverrides[exIdx].shift_end = null;
+            state.scheduleOverrides[exIdx].leave_type = null;
+          }
+        } else {
+          state.scheduleOverrides.push({
+            agent_id: data.agent_id,
+            agent_name: data.agent_name,
+            date: dt,
+            is_week_off: data.is_week_off,
+            shift_start: data.is_week_off ? null : '08:00',
+            shift_end: data.is_week_off ? null : '17:00',
+            modified_by: data.changed_by || 'WFM Admin',
+            reason: data.reason || 'Week Off Update'
+          });
+        }
+      });
+    };
+
     if (window.location.protocol === 'file:') {
-      const ex = state.scheduleOverrides.find(o => o.agent_id === data.agent_id && o.date === data.date);
-      if (ex) ex.is_week_off = data.is_week_off;
-      else state.scheduleOverrides.push({ agent_id: data.agent_id, date: data.date, is_week_off: data.is_week_off });
+      applyLocal();
       return { success: true };
     }
     try {
@@ -449,25 +521,46 @@ const api = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
       });
-      if (!res.ok) throw new Error('Failed to update week-off');
-      return res.json();
+      if (res.ok) {
+        applyLocal();
+        return await res.json();
+      }
+      applyLocal();
+      return { success: true };
     } catch (e) {
-      const ex = state.scheduleOverrides.find(o => o.agent_id === data.agent_id && o.date === data.date);
-      if (ex) ex.is_week_off = data.is_week_off;
-      else state.scheduleOverrides.push({ agent_id: data.agent_id, date: data.date, is_week_off: data.is_week_off });
+      applyLocal();
       return { success: true };
     }
   },
   async addScheduleLeave(data) {
+    const dates = data.dates || (data.date ? [data.date] : []);
+    const applyLocal = () => {
+      dates.forEach(dt => {
+        const exIdx = (state.scheduleOverrides || []).findIndex(o => o.agent_id === data.agent_id && o.date === dt);
+        if (!state.scheduleOverrides) state.scheduleOverrides = [];
+        if (exIdx !== -1) {
+          state.scheduleOverrides[exIdx].leave_type = data.leave_type;
+          state.scheduleOverrides[exIdx].leave_start = data.leave_start;
+          state.scheduleOverrides[exIdx].leave_end = data.leave_end;
+          state.scheduleOverrides[exIdx].is_week_off = false;
+        } else {
+          state.scheduleOverrides.push({
+            agent_id: data.agent_id,
+            agent_name: data.agent_name,
+            date: dt,
+            leave_type: data.leave_type,
+            leave_start: data.leave_start,
+            leave_end: data.leave_end,
+            is_week_off: false,
+            modified_by: data.changed_by || 'WFM Admin',
+            reason: data.reason || 'Leave Entry'
+          });
+        }
+      });
+    };
+
     if (window.location.protocol === 'file:') {
-      const ex = state.scheduleOverrides.find(o => o.agent_id === data.agent_id && o.date === data.date);
-      if (ex) {
-        ex.leave_type = data.leave_type;
-        ex.leave_start = data.leave_start;
-        ex.leave_end = data.leave_end;
-      } else {
-        state.scheduleOverrides.push({ agent_id: data.agent_id, date: data.date, leave_type: data.leave_type, leave_start: data.leave_start, leave_end: data.leave_end });
-      }
+      applyLocal();
       return { success: true };
     }
     try {
@@ -476,17 +569,38 @@ const api = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
       });
-      if (!res.ok) throw new Error('Failed to add leave');
-      return res.json();
+      if (res.ok) {
+        applyLocal();
+        return await res.json();
+      }
+      applyLocal();
+      return { success: true };
     } catch (e) {
-      const ex = state.scheduleOverrides.find(o => o.agent_id === data.agent_id && o.date === data.date);
-      if (ex) { ex.leave_type = data.leave_type; ex.leave_start = data.leave_start; ex.leave_end = data.leave_end; }
-      else state.scheduleOverrides.push({ agent_id: data.agent_id, date: data.date, leave_type: data.leave_type, leave_start: data.leave_start, leave_end: data.leave_end });
+      applyLocal();
       return { success: true };
     }
   },
   async manageScheduleActivity(data) {
+    const dt = data.date;
+    const applyLocal = () => {
+      if (!state.scheduleOverrides) state.scheduleOverrides = [];
+      let ex = state.scheduleOverrides.find(o => o.agent_id === data.agent_id && o.date === dt);
+      if (!ex) {
+        ex = { agent_id: data.agent_id, agent_name: data.agent_name, date: dt, activities: [] };
+        state.scheduleOverrides.push(ex);
+      }
+      if (!ex.activities) ex.activities = [];
+      ex.activities.push({
+        id: `ACT_${Date.now()}`,
+        name: data.activity_name,
+        start: data.start_time,
+        end: data.end_time,
+        duration: data.duration_minutes || 60
+      });
+    };
+
     if (window.location.protocol === 'file:') {
+      applyLocal();
       return { success: true };
     }
     try {
@@ -495,9 +609,16 @@ const api = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
       });
-      if (!res.ok) throw new Error('Failed to manage activity');
-      return res.json();
-    } catch (e) { return { success: true }; }
+      if (res.ok) {
+        applyLocal();
+        return await res.json();
+      }
+      applyLocal();
+      return { success: true };
+    } catch (e) {
+      applyLocal();
+      return { success: true };
+    }
   },
   async getAuditLogs(agentId, date, limit = 50) {
     if (window.location.protocol === 'file:') return state.scheduleAuditLogs || [];
@@ -4295,6 +4416,7 @@ function renderAgentShowcaseView(agent, curDateStr, viewMode, displayMonthStr, d
               Quick Actions
             </h4>
             <div style="display:flex; flex-direction:column; gap:0.5rem;">
+              <button class="btn btn-secondary" id="agent-act-shift" style="justify-content:flex-start; padding:0.5rem 0.75rem; font-size:0.8rem;"><i data-lucide="edit-3" style="width:15px;height:15px; color:#38bdf8;"></i> Change Shift Hours</button>
               <button class="btn btn-secondary" id="agent-act-leave" style="justify-content:flex-start; padding:0.5rem 0.75rem; font-size:0.8rem;"><i data-lucide="umbrella" style="width:15px;height:15px; color:#f472b6;"></i> Apply Leave</button>
               <button class="btn btn-secondary" id="agent-act-activity" style="justify-content:flex-start; padding:0.5rem 0.75rem; font-size:0.8rem;"><i data-lucide="plus-circle" style="width:15px;height:15px; color:var(--color-primary-light);"></i> Add Activity</button>
               <button class="btn btn-secondary" id="agent-act-weekoff" style="justify-content:flex-start; padding:0.5rem 0.75rem; font-size:0.8rem;"><i data-lucide="calendar" style="width:15px;height:15px; color:var(--color-info);"></i> Change Week Off</button>
@@ -5649,6 +5771,7 @@ function renderTlWeeklyView(rosterAgents, targetAgent, curDateStr, displayWeekSt
             Quick Actions
           </h4>
           <div style="display:flex; flex-direction:column; gap:0.5rem;">
+            <button class="btn btn-secondary" id="tl-act-shift" style="justify-content:flex-start; padding:0.45rem 0.75rem; font-size:0.8rem;"><i data-lucide="edit-3" style="width:14px;height:14px; color:#38bdf8;"></i> Change Team Shift</button>
             <button class="btn btn-secondary" id="tl-act-activity" style="justify-content:flex-start; padding:0.45rem 0.75rem; font-size:0.8rem;"><i data-lucide="plus-circle" style="width:14px;height:14px; color:var(--color-primary-light);"></i> Add Activity</button>
             <button class="btn btn-secondary" id="tl-act-leave" style="justify-content:flex-start; padding:0.45rem 0.75rem; font-size:0.8rem;"><i data-lucide="umbrella" style="width:14px;height:14px; color:#f472b6;"></i> Add Leave</button>
             <button class="btn btn-secondary" id="tl-act-weekoff" style="justify-content:flex-start; padding:0.45rem 0.75rem; font-size:0.8rem;"><i data-lucide="calendar" style="width:14px;height:14px; color:var(--color-info);"></i> Change Week Off</button>
@@ -5775,6 +5898,7 @@ function renderTlDailyView(rosterAgents, targetAgent, curDateStr, displayDayStr,
             Quick Actions
           </h4>
           <div style="display:flex; flex-direction:column; gap:0.5rem;">
+            <button class="btn btn-secondary" id="tl-act-shift" style="justify-content:flex-start; padding:0.45rem 0.75rem; font-size:0.8rem;"><i data-lucide="edit-3" style="width:14px;height:14px; color:#38bdf8;"></i> Change Team Shift</button>
             <button class="btn btn-secondary" id="tl-act-activity" style="justify-content:flex-start; padding:0.45rem 0.75rem; font-size:0.8rem;"><i data-lucide="plus-circle" style="width:14px;height:14px; color:var(--color-primary-light);"></i> Add Activity</button>
             <button class="btn btn-secondary" id="tl-act-leave" style="justify-content:flex-start; padding:0.45rem 0.75rem; font-size:0.8rem;"><i data-lucide="umbrella" style="width:14px;height:14px; color:#f472b6;"></i> Add Leave</button>
             <button class="btn btn-secondary" id="tl-act-weekoff" style="justify-content:flex-start; padding:0.45rem 0.75rem; font-size:0.8rem;"><i data-lucide="calendar" style="width:14px;height:14px; color:var(--color-info);"></i> Change Week Off</button>
@@ -5856,6 +5980,7 @@ function renderTlMonthlyView(rosterAgents, targetAgent, curDateStr, displayMonth
             Quick Actions
           </h4>
           <div style="display:flex; flex-direction:column; gap:0.5rem;">
+            <button class="btn btn-secondary" id="tl-act-shift" style="justify-content:flex-start; padding:0.45rem 0.75rem; font-size:0.8rem;"><i data-lucide="edit-3" style="width:14px;height:14px; color:#38bdf8;"></i> Change Team Shift</button>
             <button class="btn btn-secondary" id="tl-act-activity" style="justify-content:flex-start; padding:0.45rem 0.75rem; font-size:0.8rem;"><i data-lucide="plus-circle" style="width:14px;height:14px; color:var(--color-primary-light);"></i> Add Activity</button>
             <button class="btn btn-secondary" id="tl-act-leave" style="justify-content:flex-start; padding:0.45rem 0.75rem; font-size:0.8rem;"><i data-lucide="umbrella" style="width:14px;height:14px; color:#f472b6;"></i> Add Leave</button>
             <button class="btn btn-secondary" id="tl-act-weekoff" style="justify-content:flex-start; padding:0.45rem 0.75rem; font-size:0.8rem;"><i data-lucide="calendar" style="width:14px;height:14px; color:var(--color-info);"></i> Change Week Off</button>
@@ -6017,6 +6142,13 @@ function attachShowcaseEventListeners(c, role, targetAgent, rosterAgents, curDat
     });
   }
 
+  const btnTlActShift = document.getElementById('tl-act-shift');
+  if (btnTlActShift) {
+    btnTlActShift.addEventListener('click', () => {
+      showTlChangeShiftModal(allTeamAgents, c);
+    });
+  }
+
   const btnTlActLeave = document.getElementById('tl-act-leave');
   if (btnTlActLeave) {
     btnTlActLeave.addEventListener('click', () => {
@@ -6039,6 +6171,13 @@ function attachShowcaseEventListeners(c, role, targetAgent, rosterAgents, curDat
   }
 
   // Agent Quick Actions
+  const btnActShift = document.getElementById('agent-act-shift');
+  if (btnActShift) {
+    btnActShift.addEventListener('click', () => {
+      showAgentShiftChangeModal(targetAgent, c);
+    });
+  }
+
   const btnActLeave = document.getElementById('agent-act-leave');
   if (btnActLeave) {
     btnActLeave.addEventListener('click', () => {
@@ -6444,6 +6583,112 @@ function attachShowcaseEventListeners(c, role, targetAgent, rosterAgents, curDat
 }
 
 // TL Modal Helpers (Direct to WFM approval with Agent notification)
+function showTlChangeShiftModal(teamAgents, c) {
+  const curDate = state.selectedDate || formatIsoDate(new Date());
+  const modalHtml = `
+    <div id="agent-request-modal-overlay" style="position:fixed; inset:0; background:rgba(0,0,0,0.75); backdrop-filter:blur(6px); z-index:9999; display:flex; align-items:center; justify-content:center;">
+      <div style="background:#0f172a; border:1px solid var(--border-light); border-radius:var(--radius-lg); width:100%; max-width:480px; padding:1.5rem; box-shadow:0 20px 40px rgba(0,0,0,0.5);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; border-bottom:1px solid var(--border-light); padding-bottom:0.75rem;">
+          <h3 style="font-size:1.1rem; font-weight:800; color:white; font-family:var(--font-display); display:flex; align-items:center; gap:0.5rem;">
+            <i data-lucide="edit-3" style="width:18px;height:18px; color:#38bdf8;"></i> TL: Change Team Member Shift
+          </h3>
+          <button id="modal-close-btn" style="background:transparent; border:none; color:var(--text-muted); cursor:pointer; font-size:1.25rem;">✕</button>
+        </div>
+
+        <form id="tl-shift-form" style="display:flex; flex-direction:column; gap:0.9rem;">
+          <div>
+            <label class="filter-label">Select Team Member</label>
+            <select class="sidebar-select" id="tl-shift-agent" required style="padding:0.5rem; font-size:0.85rem;">
+              ${teamAgents.map(ag => `<option value="${ag.id}">${ag.name} (${ag.id})</option>`).join('')}
+            </select>
+          </div>
+
+          <div>
+            <label class="filter-label">Effective Date</label>
+            <input type="date" class="form-control" id="tl-shift-date" value="${curDate}" required style="padding:0.45rem 0.6rem; font-size:0.85rem;">
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
+            <div>
+              <label class="filter-label">New Shift Start</label>
+              <input type="text" class="form-control" id="tl-shift-start" value="08:00" required style="padding:0.45rem 0.6rem; font-size:0.85rem;">
+            </div>
+            <div>
+              <label class="filter-label">New Shift End</label>
+              <input type="text" class="form-control" id="tl-shift-end" value="17:00" required style="padding:0.45rem 0.6rem; font-size:0.85rem;">
+            </div>
+          </div>
+
+          <div>
+            <label class="filter-label">Reason *</label>
+            <select class="sidebar-select" id="tl-shift-reason" style="padding:0.5rem; font-size:0.85rem;">
+              <option value="Coverage Realignment">Coverage Realignment</option>
+              <option value="Agent Shift Swap Request">Agent Shift Swap Request</option>
+              <option value="Peak Queue Support">Peak Queue Support</option>
+              <option value="Emergency Scheduling">Emergency Scheduling</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="filter-label">Comments for WFM</label>
+            <textarea class="form-control" id="tl-shift-comments" rows="2" placeholder="Notes for WFM approval..." style="padding:0.45rem 0.6rem; font-size:0.85rem;"></textarea>
+          </div>
+
+          <div style="background:rgba(56,189,248,0.1); border:1px solid rgba(56,189,248,0.3); border-radius:var(--radius-sm); padding:0.6rem; font-size:0.72rem; color:#7dd3fc;">
+            ⚡ <strong>Direct-to-WFM:</strong> This shift change request bypasses TL Stage 1 and goes directly to <strong>WFM Admin</strong> for approval.
+          </div>
+
+          <div style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:0.5rem;">
+            <button type="button" class="btn btn-secondary" id="modal-cancel-btn" style="padding:0.45rem 1rem;">Cancel</button>
+            <button type="submit" class="btn btn-primary" style="padding:0.45rem 1.25rem;">Submit to WFM</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+  if (window.lucide) window.lucide.createIcons();
+
+  const overlay = document.getElementById('agent-request-modal-overlay');
+  const close = () => overlay && overlay.remove();
+
+  document.getElementById('modal-close-btn').addEventListener('click', close);
+  document.getElementById('modal-cancel-btn').addEventListener('click', close);
+
+  document.getElementById('tl-shift-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const agId = document.getElementById('tl-shift-agent').value;
+    const ag = teamAgents.find(a => a.id === agId) || teamAgents[0];
+    const dt = document.getElementById('tl-shift-date').value;
+    const startT = document.getElementById('tl-shift-start').value;
+    const endT = document.getElementById('tl-shift-end').value;
+    const reason = document.getElementById('tl-shift-reason').value;
+    const comments = document.getElementById('tl-shift-comments').value;
+
+    try {
+      await api.createWorkflowRequest({
+        agent_id: ag.id,
+        agent_name: ag.name,
+        request_type: 'shift',
+        dates: [dt],
+        details: { shift_start: startT, shift_end: endT },
+        reason: reason,
+        comments: comments,
+        stage: 'wfm_review',
+        initiator_role: 'Team Leader',
+        tl_name: 'Marcus Brody'
+      });
+      alert(`Success: Shift change (${startT} - ${endT}) for ${ag.name} submitted directly to WFM!`);
+      close();
+      await initData();
+      renderScheduling(c);
+    } catch (err) {
+      alert("Error submitting request: " + err.message);
+    }
+  });
+}
+
 function showTlAddActivityModal(teamAgents, c) {
   const curDate = state.selectedDate || formatIsoDate(new Date());
   const modalHtml = `
@@ -6816,8 +7061,101 @@ function showTlNotificationModal(teamAgents, c) {
 }
 
 // Modal Helpers for Agent Request Submission
+function showAgentShiftChangeModal(agent, c) {
+  const curDate = state.selectedDate || formatIsoDate(new Date());
+  const curSched = getResolvedAgentDaySchedule(agent, curDate);
+  const modalHtml = `
+    <div id="agent-request-modal-overlay" style="position:fixed; inset:0; background:rgba(0,0,0,0.75); backdrop-filter:blur(6px); z-index:9999; display:flex; align-items:center; justify-content:center;">
+      <div style="background:#0f172a; border:1px solid var(--border-light); border-radius:var(--radius-lg); width:100%; max-width:480px; padding:1.5rem; box-shadow:0 20px 40px rgba(0,0,0,0.5);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; border-bottom:1px solid var(--border-light); padding-bottom:0.75rem;">
+          <h3 style="font-size:1.1rem; font-weight:800; color:white; font-family:var(--font-display); display:flex; align-items:center; gap:0.5rem;">
+            <i data-lucide="edit-3" style="width:18px;height:18px; color:#38bdf8;"></i> Request Shift Change
+          </h3>
+          <button id="modal-close-btn" style="background:transparent; border:none; color:var(--text-muted); cursor:pointer; font-size:1.25rem;">✕</button>
+        </div>
 
-// Modal Helpers for Agent Request Submission
+        <form id="agent-shift-form" style="display:flex; flex-direction:column; gap:0.9rem;">
+          <div>
+            <label class="filter-label">Effective Date</label>
+            <input type="date" class="form-control" id="req-shift-date" value="${curDate}" required style="padding:0.45rem 0.6rem; font-size:0.85rem;">
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
+            <div>
+              <label class="filter-label">Requested Shift Start</label>
+              <input type="text" class="form-control" id="req-shift-start" value="${curSched.shiftStart || '08:00'}" required style="padding:0.45rem 0.6rem; font-size:0.85rem;">
+            </div>
+            <div>
+              <label class="filter-label">Requested Shift End</label>
+              <input type="text" class="form-control" id="req-shift-end" value="${curSched.shiftEnd || '17:00'}" required style="padding:0.45rem 0.6rem; font-size:0.85rem;">
+            </div>
+          </div>
+
+          <div>
+            <label class="filter-label">Reason *</label>
+            <select class="sidebar-select" id="req-shift-reason" style="padding:0.5rem; font-size:0.85rem;">
+              <option value="Schedule Swap Request">Schedule Swap Request</option>
+              <option value="Transport / Commute Adjustment">Transport / Commute Adjustment</option>
+              <option value="Personal Appointment">Personal Appointment</option>
+              <option value="Operational Overtime Support">Operational Overtime Support</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="filter-label">Comments</label>
+            <textarea class="form-control" id="req-shift-comments" rows="2" placeholder="Provide details for your Team Leader..." style="padding:0.45rem 0.6rem; font-size:0.85rem;"></textarea>
+          </div>
+
+          <div style="background:rgba(99,102,241,0.1); border:1px solid rgba(99,102,241,0.25); border-radius:var(--radius-sm); padding:0.6rem; font-size:0.72rem; color:#a5b4fc;">
+            ℹ️ <strong>2-Stage Flow:</strong> Your request will go to Team Leader <strong>Marcus Brody</strong>, then to <strong>WFM Admin</strong> for final scheduling.
+          </div>
+
+          <div style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:0.5rem;">
+            <button type="button" class="btn btn-secondary" id="modal-cancel-btn" style="padding:0.45rem 1rem;">Cancel</button>
+            <button type="submit" class="btn btn-primary" style="padding:0.45rem 1.25rem;">Submit Request</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+
+  document.body.insertAdjacentHTML('beforeend', modalHtml);
+  if (window.lucide) window.lucide.createIcons();
+
+  const overlay = document.getElementById('agent-request-modal-overlay');
+  const close = () => overlay && overlay.remove();
+
+  document.getElementById('modal-close-btn').addEventListener('click', close);
+  document.getElementById('modal-cancel-btn').addEventListener('click', close);
+
+  document.getElementById('agent-shift-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const dt = document.getElementById('req-shift-date').value;
+    const startT = document.getElementById('req-shift-start').value;
+    const endT = document.getElementById('req-shift-end').value;
+    const reason = document.getElementById('req-shift-reason').value;
+    const comments = document.getElementById('req-shift-comments').value;
+
+    try {
+      await api.createWorkflowRequest({
+        agent_id: agent.id,
+        agent_name: agent.name,
+        request_type: 'shift',
+        dates: [dt],
+        details: { shift_start: startT, shift_end: endT },
+        reason: reason,
+        comments: comments
+      });
+      alert(`Success: Your Shift Change request (${startT} - ${endT}) has been submitted for approval!`);
+      close();
+      await initData();
+      renderScheduling(c);
+    } catch (err) {
+      alert("Error submitting request: " + err.message);
+    }
+  });
+}
+
 function showAgentLeaveModal(agent, c) {
   const curDate = state.selectedDate || formatIsoDate(new Date());
   const modalHtml = `
