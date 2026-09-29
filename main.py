@@ -880,6 +880,17 @@ def update_agent(agent_id: str, req: AgentUpdate):
     conn.close()
     return {"success": True}
 
+@app.delete("/api/agents/{agent_id}")
+def delete_agent(agent_id: str):
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("DELETE FROM employee_campaign_assignments WHERE agent_id = ?", (agent_id,))
+    c.execute("DELETE FROM schedule_overrides WHERE agent_id = ?", (agent_id,))
+    c.execute("DELETE FROM agents WHERE id = ?", (agent_id,))
+    conn.commit()
+    conn.close()
+    return {"success": True}
+
 @app.post("/api/agents/bulk-sync")
 def bulk_sync_agents(req: BulkAgentsSync):
     conn = get_db()

@@ -220,6 +220,18 @@ const api = {
       return res.json();
     } catch (e) { return { success: true }; }
   },
+  async deleteAgent(id) {
+    if (window.location.protocol === 'file:') {
+      state.agents = state.agents.filter(a => a.id !== id);
+      return { success: true };
+    }
+    try {
+      const res = await fetch(getApiUrl(`/api/agents/${encodeURIComponent(id)}`), {
+        method: 'DELETE'
+      });
+      return res.json();
+    } catch (e) { return { success: true }; }
+  },
   async updateAgentState(idOrName, actualOnline, actualState) {
     if (window.location.protocol === 'file:') {
       const agent = state.agents.find(a => a.id === idOrName || a.name === idOrName);
@@ -1609,8 +1621,11 @@ function generateMockAgents(count) {
 
 async function initData() {
   try {
-    const [accounts, agents, hoops, requests, activeFc, histData, shrinkage, overrides, schedConfig, auditLogs, wfRequests,
-           wsmCamps, wsmLobs, wsmTemplates, wsmEvents, wsmPatterns, wsmRotations, wsmRules, wsmReqs, wsmRuns] = await Promise.all([
+    const [
+      accounts, agents, hoops, requests, activeFc, histData, shrinkage, overrides, schedConfig, auditLogs, wfRequests,
+      wsmCamps, wsmLobs, wsmTemplates, wsmEvents, wsmPatterns, wsmRotations, wsmRules, wsmReqs, wsmRuns,
+      wsmActivities, ccConnectors, ccEvents
+    ] = await Promise.all([
       api.getAccounts().catch(() => null),
       api.getAgents().catch(() => null),
       api.getHoops().catch(() => null),
@@ -1636,12 +1651,12 @@ async function initData() {
       api.telephony.getEvents(50).catch(() => [])
     ]);
 
-    if (accounts && Array.isArray(accounts) && accounts.length > 0) state.accounts = accounts;
-    if (agents && Array.isArray(agents) && agents.length > 0) state.agents = agents;
-    if (hoops && Array.isArray(hoops) && hoops.length > 0) state.hoops = hoops;
-    if (requests && Array.isArray(requests) && requests.length > 0) state.timeOffRequests = requests;
-    if (activeFc && typeof activeFc === 'object' && Object.keys(activeFc).length > 0) state.activeForecasts = activeFc;
-    if (histData && typeof histData === 'object' && Object.keys(histData).length > 0) state.historicalData = histData;
+    if (accounts && Array.isArray(accounts)) state.accounts = accounts;
+    if (agents && Array.isArray(agents)) state.agents = agents;
+    if (hoops && Array.isArray(hoops)) state.hoops = hoops;
+    if (requests && Array.isArray(requests)) state.timeOffRequests = requests;
+    if (activeFc && typeof activeFc === 'object') state.activeForecasts = activeFc;
+    if (histData && typeof histData === 'object') state.historicalData = histData;
     if (shrinkage && typeof shrinkage === 'object') state.shrinkage = shrinkage;
     if (overrides && Array.isArray(overrides)) state.scheduleOverrides = overrides;
     if (schedConfig && typeof schedConfig === 'object') state.scheduleConfig = schedConfig;
@@ -1661,11 +1676,7 @@ async function initData() {
       state.wsmScheduleRuns = wsmRuns;
       if (wsmRuns.length > 0) state.activeWsmRun = wsmRuns[0];
     }
-    if (arguments[14] && Array.isArray(arguments[14])) state.wsmActivities = arguments[14];
-
-    // Load Telephony & CCaaS Connectors & Event Streams
-    const [,,, ,,,,,,,,,,,,,, wsmActs, ccConnectors, ccEvents] = [accounts, agents, hoops, requests, activeFc, histData, shrinkage, overrides, schedConfig, auditLogs, wfRequests, wsmCamps, wsmLobs, wsmTemplates, wsmEvents, wsmPatterns, wsmRotations, wsmRules, wsmReqs, wsmRuns, arguments[14], arguments[15], arguments[16]];
-    if (wsmActs && Array.isArray(wsmActs) && wsmActs.length > 0) state.wsmActivities = wsmActs;
+    if (wsmActivities && Array.isArray(wsmActivities)) state.wsmActivities = wsmActivities;
     if (ccConnectors && Array.isArray(ccConnectors)) state.telephonyConnectors = ccConnectors;
     if (ccEvents && Array.isArray(ccEvents)) state.telephonyEvents = ccEvents;
 
@@ -1686,21 +1697,20 @@ async function initData() {
     const savedView = localStorage.getItem('wfm_active_view');
     if (savedView && checkRoleAccess(savedView)) state.activeView = savedView;
 
-    // Standalone fallback: seed data if not populated from backend
-    if (!state.agents || state.agents.length === 0) {
-      generateMockAgents(45);
-    }
-    if (!state.accounts || state.accounts.length === 0) {
-      state.accounts = [
-        { email: 'admin@houseofbrands.com', password: 'admin', role: 'WFM Admin', name: 'Animesh Dubey', status: 'Active', created: '2026-06-25', lastLogin: 'Never' },
-        { email: 'animesh.dubey@intelegencia.com', password: 'admin', role: 'WFM Admin', name: 'Animesh Dubey', status: 'Active', created: '2026-06-25', lastLogin: 'Never' },
-        { email: 'tl@houseofbrands.com', password: 'leader', role: 'Team Leader', name: 'Marcus Brody', status: 'Active', created: '2026-06-25', lastLogin: 'Never' },
-        { email: 'agent@houseofbrands.com', password: 'agent', role: 'Agent', name: 'John Smith', status: 'Active', created: '2026-06-25', lastLogin: 'Never' }
-      ];
+    // Standalone fallback: only seed if running in offline file: mode
+    if (window.location.protocol === 'file:') {
+      if (!state.agents || state.agents.length === 0) generateMockAgents(45);
+      if (!state.accounts || state.accounts.length === 0) {
+        state.accounts = [
+          { email: 'admin@houseofbrands.com', password: 'admin', role: 'WFM Admin', name: 'Animesh Dubey', status: 'Active', created: '2026-06-25', lastLogin: 'Never' },
+          { email: 'tl@houseofbrands.com', password: 'leader', role: 'Team Leader', name: 'Marcus Brody', status: 'Active', created: '2026-06-25', lastLogin: 'Never' },
+          { email: 'agent@houseofbrands.com', password: 'agent', role: 'Agent', name: 'John Smith', status: 'Active', created: '2026-06-25', lastLogin: 'Never' }
+        ];
+      }
     }
   } catch (err) {
     console.warn("Backend data fetch notice:", err);
-    if (!state.agents || state.agents.length === 0) generateMockAgents(45);
+    if (window.location.protocol === 'file:' && (!state.agents || state.agents.length === 0)) generateMockAgents(45);
   }
 }
 
@@ -3557,11 +3567,11 @@ function renderAgentManager(c) {
   });
 
   document.querySelectorAll('.btn-delete-agent').forEach(el => {
-    el.addEventListener('click', (e) => {
+    el.addEventListener('click', async (e) => {
       const id = e.target.closest('button').dataset.id;
       if (confirm(`Are you sure you want to permanently delete agent ${id}?`)) {
+        await api.deleteAgent(id);
         state.agents = state.agents.filter(a => a.id !== id);
-        saveAgents();
         renderAgentManager(c);
       }
     });
@@ -6158,182 +6168,6 @@ function renderWsmRulesStudio() {
                   <td><span style="font-weight:800; color:#fbbf24;">${sr.weight} pts</span></td>
                   <td style="font-size:0.75rem; color:var(--text-muted);">${sr.description}</td>
                   <td><button class="btn btn-secondary btn-tune-rule" data-id="${sr.id}" style="padding:0.25rem 0.5rem; font-size:0.72rem;">Adjust</button></td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-function renderWsmShiftPatternsStudio() {
-  const templates = state.wsmShiftTemplates || [];
-  const patterns = state.wsmWorkPatterns || [];
-  const rotations = state.wsmRotations || [];
-  const events = state.wsmShiftEvents || [];
-
-  return `
-    <div style="display:flex; flex-direction:column; gap:1.25rem;">
-      <!-- Shift Templates -->
-      <div class="wfm-card" style="padding:1.25rem;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
-          <h3 style="font-size:1.1rem; color:white; font-weight:800; font-family:var(--font-display);">Reusable Shift Templates</h3>
-          <span style="font-size:0.75rem; color:var(--text-muted);">${templates.length} Templates Configured</span>
-        </div>
-        <div class="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>Template ID</th>
-                <th>Name</th>
-                <th>Duration</th>
-                <th>Paid / Unpaid</th>
-                <th>Earliest / Latest Start</th>
-                <th>Allowed Start Windows</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${templates.map(t => `
-                <tr>
-                  <td style="font-weight:700; color:#818cf8;">${t.id}</td>
-                  <td style="font-weight:700; color:white;">${t.name}</td>
-                  <td><strong>${t.duration_hours}h</strong></td>
-                  <td>${t.paid_hours}h paid / ${t.unpaid_hours}h unpaid</td>
-                  <td>${t.earliest_start} – ${t.latest_start}</td>
-                  <td><span style="font-size:0.72rem; color:#38bdf8;">${(t.allowed_starts || []).join(', ')}</span></td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Shift Events (Break/Lunch Engine) -->
-      <div class="wfm-card" style="padding:1.25rem;">
-        <h3 style="font-size:1.1rem; color:white; font-weight:800; font-family:var(--font-display); margin-bottom:0.75rem;">Reusable Shift Events & Intraday Timeline Rules</h3>
-        <div class="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>Event ID</th>
-                <th>Event Name</th>
-                <th>Duration</th>
-                <th>Paid / Unpaid</th>
-                <th>Offset from Shift Start</th>
-                <th>Flex Window</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${events.map(ev => `
-                <tr>
-                  <td style="font-weight:700; color:#38bdf8;">${ev.id}</td>
-                  <td style="font-weight:700; color:white;">${ev.name}</td>
-                  <td><strong>${ev.duration_minutes} mins</strong></td>
-                  <td>${ev.is_paid ? 'Paid' : 'Unpaid Meal'}</td>
-                  <td>+${ev.offset_hours_from_start} hours</td>
-                  <td>±${ev.flexible_window_minutes || 30} mins</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Work Patterns & Rotations -->
-      <div class="wfm-card" style="padding:1.25rem;">
-        <h3 style="font-size:1.1rem; color:white; font-weight:800; font-family:var(--font-display); margin-bottom:0.75rem;">Work Patterns & 4-Week Rotations</h3>
-        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:1rem;">
-          ${patterns.map(p => `
-            <div style="background:rgba(15,23,42,0.6); border:1px solid var(--border-light); border-radius:var(--radius-sm); padding:1rem;">
-              <div style="font-weight:800; color:white; font-size:0.9rem; margin-bottom:0.25rem;">${p.name}</div>
-              <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:0.5rem;">${p.description}</div>
-              <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:#38bdf8;">
-                <span>Weekly Hours: <strong>${p.weekly_hours}h</strong></span>
-                <span>Days: <strong>${p.days_on} on / ${p.days_off} off</strong></span>
-              </div>
-            </div>
-          `).join('')}
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-function renderWsmRulesStudio() {
-  const rules = state.wsmRules || [];
-  const hardRules = rules.filter(r => r.rule_type === 'HARD');
-  const softRules = rules.filter(r => r.rule_type === 'SOFT');
-
-  return `
-    <div style="display:flex; flex-direction:column; gap:1.25rem;">
-      <!-- Hard Rules -->
-      <div class="wfm-card" style="padding:1.25rem; border-color:rgba(16,185,129,0.3);">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
-          <div>
-            <h3 style="font-size:1.1rem; color:#34d399; font-weight:800; font-family:var(--font-display);">Hard Constraints (Zero-Violation Rules)</h3>
-            <p style="font-size:0.75rem; color:var(--text-muted);">Hard rules must be 100% satisfied by the automated optimization solver</p>
-          </div>
-          <span class="badge badge-success">Strict Enforcement</span>
-        </div>
-        <div class="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>Rule Name</th>
-                <th>Category</th>
-                <th>Priority</th>
-                <th>Description</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${hardRules.map(hr => `
-                <tr>
-                  <td style="font-weight:700; color:white;">${hr.rule_name}</td>
-                  <td><span class="badge badge-info">${hr.category}</span></td>
-                  <td>Priority ${hr.priority}</td>
-                  <td style="font-size:0.75rem; color:var(--text-muted);">${hr.description}</td>
-                  <td><span class="badge badge-success">Enforced</span></td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Soft Rules & Weights -->
-      <div class="wfm-card" style="padding:1.25rem; border-color:rgba(99,102,241,0.3);">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
-          <div>
-            <h3 style="font-size:1.1rem; color:#818cf8; font-weight:800; font-family:var(--font-display);">Soft Constraints & Optimization Penalties</h3>
-            <p style="font-size:0.75rem; color:var(--text-muted);">Adjust weights (1-100) to balance agent preferences, cost, fairness, and shift stability</p>
-          </div>
-        </div>
-        <div class="table-wrapper">
-          <table>
-            <thead>
-              <tr>
-                <th>Soft Rule Name</th>
-                <th>Category</th>
-                <th>Weight (1-100)</th>
-                <th>Description</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${softRules.map(sr => `
-                <tr>
-                  <td style="font-weight:700; color:white;">${sr.rule_name}</td>
-                  <td><span class="badge badge-warning">${sr.category}</span></td>
-                  <td>
-                    <span style="font-weight:800; color:#fbbf24;">${sr.weight} pts</span>
-                  </td>
-                  <td style="font-size:0.75rem; color:var(--text-muted);">${sr.description}</td>
-                  <td>
-                    <button class="btn btn-secondary btn-tune-rule" data-id="${sr.id}" style="padding:0.25rem 0.5rem; font-size:0.72rem;">Adjust Weight</button>
-                  </td>
                 </tr>
               `).join('')}
             </tbody>
