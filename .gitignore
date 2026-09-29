@@ -1,0 +1,12 @@
+﻿__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.db-journal
+*.db-wal
+*.db-shm
+wfm_one_backup_*.db
+.vscode/
+.idea/
+.DS_Store
