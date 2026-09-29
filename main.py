@@ -773,7 +773,7 @@ def register(req: RegisterRequest):
     if is_wfm_role and req.secret_code:
         if req.secret_code.strip() != "WFMONE2026":
             conn.close()
-            raise HTTPException(status_code=400, detail="Invalid WFM registration secret code. Use WFMONE2026.")
+            raise HTTPException(status_code=400, detail="Invalid WFM registration authorization code. Please contact your system administrator.")
 
     acc_status = "Active"
     c.execute(

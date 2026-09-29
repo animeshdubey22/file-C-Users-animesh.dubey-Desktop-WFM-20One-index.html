@@ -1932,9 +1932,9 @@ function renderRegisterForm(c) {
         </div>
 
         <div class="form-group" id="wfm-secret-group" style="display: none;">
-          <label class="form-label" style="color:var(--color-warning); font-weight:700;">Secret WFM Registration Code</label>
-          <input type="text" class="form-control" id="reg-secret" placeholder="Enter WFM registration key">
-          <span style="font-size:0.75rem; color:var(--text-muted); margin-top:0.25rem;">Note: Required for WFM roles. Test Key: <strong style="color:white;">WFMONE2026</strong></span>
+          <label class="form-label" style="color:var(--color-warning); font-weight:700;">WFM Registration Authorization Code</label>
+          <input type="password" class="form-control" id="reg-secret" placeholder="Enter authorization code" autocomplete="off">
+          <span style="font-size:0.75rem; color:var(--text-muted); margin-top:0.25rem;">Required for elevated WFM roles. Contact your administrator if you do not have a code.</span>
         </div>
 
         <button type="submit" class="btn btn-primary" style="padding:0.75rem; font-weight:700; margin-top:0.5rem;">Register Account</button>
