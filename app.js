@@ -1848,7 +1848,7 @@ function renderLoginForm(c) {
           <label class="form-label">Email Address</label>
           <div class="input-with-icon">
             <i data-lucide="mail"></i>
-            <input type="email" class="form-control" id="login-email" required placeholder="admin@houseofbrands.com" value="admin@houseofbrands.com">
+            <input type="email" class="form-control" id="login-email" required placeholder="Enter your email" value="" autocomplete="username">
           </div>
         </div>
 
@@ -1856,7 +1856,7 @@ function renderLoginForm(c) {
           <label class="form-label">Password</label>
           <div class="input-with-icon">
             <i data-lucide="lock"></i>
-            <input type="password" class="form-control" id="login-pass" required placeholder="••••••••" value="admin">
+            <input type="password" class="form-control" id="login-pass" required placeholder="Enter your password" value="" autocomplete="current-password">
           </div>
         </div>
 
